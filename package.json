@@ -1,0 +1,29 @@
+{
+  "name": "dorandoran",
+  "version": "0.0.0",
+  "private": true,
+  "description": "도란도란 — 둘이서 도란도란, 한일 커플 언어 학습 PWA",
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter \"./apps/*\" dev",
+    "dev:web": "pnpm --filter @dorandoran/web dev",
+    "dev:api": "pnpm --filter @dorandoran/api dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "clean": "pnpm -r exec rimraf .next dist .turbo node_modules"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "rimraf": "^6.0.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/react": "19.2.14",
+      "@types/react-dom": "19.2.3"
+    }
+  }
+}

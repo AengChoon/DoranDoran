@@ -1,0 +1,253 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css')
+layer(base);
+@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800;900&display=swap')
+layer(base);
+
+@import 'tailwindcss';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-duo-green: #58cc02;
+  --color-duo-green-dark: #58a700;
+  --color-duo-green-hover: #61e002;
+  --color-duo-blue: #1cb0f6;
+  --color-duo-blue-dark: #1899d6;
+  --color-duo-yellow: #ffc800;
+  --color-duo-yellow-dark: #e0a800;
+  --color-duo-red: #ff4b4b;
+  --color-duo-red-dark: #e04444;
+  --color-duo-purple: #ce82ff;
+  --color-duo-bg: #ffffff;
+  --color-duo-bg-muted: #f7f7f7;
+  --color-duo-border: #e5e5e5;
+  --color-duo-text: #4b4b4b;
+  --color-duo-text-muted: #777777;
+
+  --color-doran-warm: #ff6b6b;
+  --color-doran-warm-dark: #e05656;
+  --color-doran-soft: #ffb3ba;
+  --color-doran-soft-dark: #e89aa1;
+
+  --color-night-bg: #131f24;
+  --color-night-surface: #202f36;
+  --color-night-border: #37464f;
+  --color-night-text: #f1f7fb;
+  --color-night-text-muted: #8fa9b5;
+
+  --font-sans:
+    var(--font-pretendard), var(--font-jp), var(--font-nunito), system-ui,
+    sans-serif;
+  --font-display:
+    var(--font-nunito), var(--font-pretendard), system-ui, sans-serif;
+
+  --font-weight-extra-black: 900;
+
+  --radius-duo-sm: 12px;
+  --radius-duo: 16px;
+  --radius-duo-lg: 20px;
+
+  --shadow-duo-green: 0 4px 0 0 #58a700;
+  --shadow-duo-green-active: 0 0 0 0 #58a700;
+  --shadow-duo-blue: 0 4px 0 0 #1899d6;
+  --shadow-duo-blue-active: 0 0 0 0 #1899d6;
+  --shadow-duo-red: 0 4px 0 0 #cc3b3b;
+  --shadow-duo-red-active: 0 0 0 0 #cc3b3b;
+  --shadow-duo-yellow: 0 4px 0 0 #e0a800;
+  --shadow-duo-yellow-active: 0 0 0 0 #e0a800;
+  --shadow-duo-warm: 0 4px 0 0 #e05656;
+  --shadow-duo-warm-active: 0 0 0 0 #e05656;
+  --shadow-duo-gray: 0 4px 0 0 #c5c5c5;
+  --shadow-duo-gray-active: 0 0 0 0 #c5c5c5;
+  --shadow-duo-disabled: 0 4px 0 0 #bbbbbb;
+  --shadow-duo-card: 0 2px 0 0 #e5e5e5;
+  --shadow-duo-card-hover: 0 4px 0 0 #e5e5e5;
+
+  --animate-tada: tada 1s ease;
+  --animate-wiggle: wiggle 0.6s ease-in-out infinite;
+  --animate-bounce-soft: bounce-soft 2.4s ease-in-out infinite;
+
+  @keyframes tada {
+    0% {
+      transform: scale(1);
+    }
+    10%,
+    20% {
+      transform: scale(0.95) rotate(-3deg);
+    }
+    30%,
+    50%,
+    70%,
+    90% {
+      transform: scale(1.05) rotate(3deg);
+    }
+    40%,
+    60%,
+    80% {
+      transform: scale(1.05) rotate(-3deg);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  @keyframes wiggle {
+    0%,
+    100% {
+      transform: rotate(-2deg);
+    }
+    50% {
+      transform: rotate(2deg);
+    }
+  }
+  @keyframes bounce-soft {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@utility btn-duo {
+  /* 듀오링고 시그니처 버튼 — 하단 단색 그림자 + active에서 눌림 효과 */
+  @apply inline-flex items-center justify-center select-none tracking-wide;
+  @apply font-extrabold rounded-duo duration-100;
+  @apply active:translate-y-[2px];
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s,
+    filter 0.1s;
+  &:disabled {
+    @apply bg-duo-border text-duo-text-muted cursor-not-allowed pointer-events-none;
+    box-shadow: 0 4px 0 0 #bbbbbb !important;
+    filter: none !important;
+    transform: none !important;
+  }
+}
+
+@utility card-duo {
+  /* 카드 컨테이너 */
+  @apply bg-duo-bg border-2 border-duo-border rounded-duo-lg p-4 shadow-duo-card;
+}
+
+@utility bubble-left {
+  /* 채팅 말풍선 (좌/우) */
+  @apply bg-duo-bg-muted border-2 border-duo-border rounded-duo px-4 py-3 max-w-[85%] self-start;
+}
+
+@utility bubble-right {
+  @apply bg-duo-blue/10 border-2 border-duo-blue/30 rounded-duo px-4 py-3 max-w-[85%] self-end;
+}
+
+@utility no-scrollbar {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  scrollbar-width: none;
+}
+
+@layer base {
+  :root {
+    --font-pretendard: "Pretendard Variable", "Pretendard", -apple-system,
+      BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo", "Malgun Gothic",
+      sans-serif;
+    --font-jp: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN",
+      "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", sans-serif;
+    --duo-green: #58cc02;
+    --duo-green-dark: #58a700;
+    --duo-blue: #1cb0f6;
+    --duo-blue-dark: #1899d6;
+    --duo-yellow: #ffc800;
+    --duo-red: #ff4b4b;
+    --duo-purple: #ce82ff;
+    --doran-warm: #ff6b6b;
+    --doran-soft: #ffb3ba;
+    --duo-bg: #ffffff;
+    --duo-bg-muted: #f7f7f7;
+    --duo-border: #e5e5e5;
+    --duo-text: #4b4b4b;
+    --duo-text-muted: #777777;
+
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .dark {
+    --duo-bg: #131f24;
+    --duo-bg-muted: #202f36;
+    --duo-border: #37464f;
+    --duo-text: #f1f7fb;
+    --duo-text-muted: #8fa9b5;
+  }
+
+  html,
+  body {
+    @apply bg-duo-bg text-duo-text antialiased;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+
+  body {
+    font-feature-settings: "ss01", "tnum";
+    font-weight: 600;
+  }
+
+  /* lang="ja" 표기된 영역은 일본어 폰트(M PLUS Rounded 1c) 우선 */
+  :lang(ja) {
+    font-family: var(--font-jp);
+  }
+
+  /* 후리가나 — 한자 위 작은 카나 */
+  ruby {
+    ruby-position: over;
+    ruby-align: center;
+    /* base/rt 정렬 어긋남 방지 — letter-spacing 영향 제거 */
+    letter-spacing: normal;
+  }
+  ruby rt {
+    font-size: 0.55em;
+    font-weight: 600;
+    color: var(--duo-text-muted);
+    line-height: 1.2;
+    user-select: none;
+    text-align: center;
+    letter-spacing: normal;
+  }
+
+  h1, h2, h3, h4 {
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+
+  /* iOS PWA 안전 영역 */
+  body.standalone {
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+  }
+
+  /* 모바일 입력 시 줌 방지 */
+  input, textarea, select {
+    font-size: 16px;
+  }
+}

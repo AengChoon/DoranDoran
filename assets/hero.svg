@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="도란도란 — 한·일 커플용 비공개 2인 PWA">
+  <!-- 배경 — duo-bg-muted 톤의 미세한 라운드 -->
+  <rect width="640" height="360" rx="28" fill="#FFFFFF"/>
+
+  <!-- Mascot pair — Mascot.tsx의 PairLayout 정적 버전.
+       원본 viewBox 320x200, 여기선 (160, 24)로 평행이동해서 중앙 배치. -->
+  <g transform="translate(160 24)">
+    <!-- 한국 말풍선 (왼쪽-위, tail 오른쪽) -->
+    <g transform="translate(80 70)">
+      <path d="M -50 -40 H 50 A 10 10 0 0 1 60 -30 V 30 A 10 10 0 0 1 50 40 L 32 40 L 44 56 L 12 40 H -50 A 10 10 0 0 1 -60 30 V -30 A 10 10 0 0 1 -50 -40 Z"
+            fill="#FFFFFF" stroke="#D4D4D8" stroke-width="2" stroke-linejoin="round"/>
+      <!-- 태극 -->
+      <g transform="rotate(30) scale(-1 1)">
+        <circle cx="0" cy="0" r="18" fill="#CD2E3A"/>
+        <path d="M -18 0 A 9 9 0 0 1 0 0 A 9 9 0 0 0 18 0 A 18 18 0 0 1 -18 0 Z" fill="#0047A0"/>
+      </g>
+      <!-- 4괘 — 건(NW), 감(NE), 리(SW), 곤(SE) -->
+      <!-- 건: solid solid solid, NW (-38,-22) rotate -45 -->
+      <g transform="translate(-38 -22) rotate(-45)">
+        <rect x="-8" y="-3.7" width="16" height="2.6" fill="#000"/>
+        <rect x="-8" y="-1.3" width="16" height="2.6" fill="#000"/>
+        <rect x="-8" y="3.7" width="16" height="2.6" fill="#000"/>
+      </g>
+      <!-- 감: broken solid broken, NE (38,-22) rotate 45 -->
+      <g transform="translate(38 -22) rotate(45)">
+        <rect x="-8" y="-3.7" width="7" height="2.6" fill="#000"/>
+        <rect x="1" y="-3.7" width="7" height="2.6" fill="#000"/>
+        <rect x="-8" y="-1.3" width="16" height="2.6" fill="#000"/>
+        <rect x="-8" y="3.7" width="7" height="2.6" fill="#000"/>
+        <rect x="1" y="3.7" width="7" height="2.6" fill="#000"/>
+      </g>
+      <!-- 리: solid broken solid, SW (-38,22) rotate 45 -->
+      <g transform="translate(-38 22) rotate(45)">
+        <rect x="-8" y="-3.7" width="16" height="2.6" fill="#000"/>
+        <rect x="-8" y="-1.3" width="7" height="2.6" fill="#000"/>
+        <rect x="1" y="-1.3" width="7" height="2.6" fill="#000"/>
+        <rect x="-8" y="3.7" width="16" height="2.6" fill="#000"/>
+      </g>
+      <!-- 곤: broken broken broken, SE (38,22) rotate -45 -->
+      <g transform="translate(38 22) rotate(-45)">
+        <rect x="-8" y="-3.7" width="7" height="2.6" fill="#000"/>
+        <rect x="1" y="-3.7" width="7" height="2.6" fill="#000"/>
+        <rect x="-8" y="-1.3" width="7" height="2.6" fill="#000"/>
+        <rect x="1" y="-1.3" width="7" height="2.6" fill="#000"/>
+        <rect x="-8" y="3.7" width="7" height="2.6" fill="#000"/>
+        <rect x="1" y="3.7" width="7" height="2.6" fill="#000"/>
+      </g>
+    </g>
+
+    <!-- 일본 말풍선 (오른쪽-아래, tail 왼쪽) -->
+    <g transform="translate(220 95)">
+      <path d="M -50 -40 H 50 A 10 10 0 0 1 60 -30 V 30 A 10 10 0 0 1 50 40 L -12 40 L -44 56 L -32 40 H -50 A 10 10 0 0 1 -60 30 V -30 A 10 10 0 0 1 -50 -40 Z"
+            fill="#FFFFFF" stroke="#D4D4D8" stroke-width="2" stroke-linejoin="round"/>
+      <circle cx="0" cy="0" r="20" fill="#BC002D"/>
+    </g>
+  </g>
+
+  <!-- Wordmark -->
+  <g font-family="'Apple SD Gothic Neo', 'Malgun Gothic', 'Hiragino Sans', 'Noto Sans CJK KR', system-ui, sans-serif" text-anchor="middle">
+    <text x="320" y="290" font-size="56" font-weight="900" fill="#58CC02" letter-spacing="-1">도란도란</text>
+    <text x="320" y="328" font-size="22" font-weight="700" fill="#777777" letter-spacing="-0.4">ドランドラン</text>
+  </g>
+</svg>
