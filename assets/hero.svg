@@ -17,29 +17,29 @@
       <!-- 4괘 — 건(NW), 감(NE), 리(SW), 곤(SE) -->
       <!-- 건: solid solid solid, NW (-38,-22) rotate -45 -->
       <g transform="translate(-38 -22) rotate(-45)">
-        <rect x="-8" y="-3.7" width="16" height="2.6" fill="#000"/>
+        <rect x="-8" y="-6.3" width="16" height="2.6" fill="#000"/>
         <rect x="-8" y="-1.3" width="16" height="2.6" fill="#000"/>
         <rect x="-8" y="3.7" width="16" height="2.6" fill="#000"/>
       </g>
       <!-- 감: broken solid broken, NE (38,-22) rotate 45 -->
       <g transform="translate(38 -22) rotate(45)">
-        <rect x="-8" y="-3.7" width="7" height="2.6" fill="#000"/>
-        <rect x="1" y="-3.7" width="7" height="2.6" fill="#000"/>
+        <rect x="-8" y="-6.3" width="7" height="2.6" fill="#000"/>
+        <rect x="1" y="-6.3" width="7" height="2.6" fill="#000"/>
         <rect x="-8" y="-1.3" width="16" height="2.6" fill="#000"/>
         <rect x="-8" y="3.7" width="7" height="2.6" fill="#000"/>
         <rect x="1" y="3.7" width="7" height="2.6" fill="#000"/>
       </g>
       <!-- 리: solid broken solid, SW (-38,22) rotate 45 -->
       <g transform="translate(-38 22) rotate(45)">
-        <rect x="-8" y="-3.7" width="16" height="2.6" fill="#000"/>
+        <rect x="-8" y="-6.3" width="16" height="2.6" fill="#000"/>
         <rect x="-8" y="-1.3" width="7" height="2.6" fill="#000"/>
         <rect x="1" y="-1.3" width="7" height="2.6" fill="#000"/>
         <rect x="-8" y="3.7" width="16" height="2.6" fill="#000"/>
       </g>
       <!-- 곤: broken broken broken, SE (38,22) rotate -45 -->
       <g transform="translate(38 22) rotate(-45)">
-        <rect x="-8" y="-3.7" width="7" height="2.6" fill="#000"/>
-        <rect x="1" y="-3.7" width="7" height="2.6" fill="#000"/>
+        <rect x="-8" y="-6.3" width="7" height="2.6" fill="#000"/>
+        <rect x="1" y="-6.3" width="7" height="2.6" fill="#000"/>
         <rect x="-8" y="-1.3" width="7" height="2.6" fill="#000"/>
         <rect x="1" y="-1.3" width="7" height="2.6" fill="#000"/>
         <rect x="-8" y="3.7" width="7" height="2.6" fill="#000"/>
