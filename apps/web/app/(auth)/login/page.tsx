@@ -24,7 +24,7 @@ export default function LoginPage() {
   }, [me.user, router]);
 
   return (
-    <main className="min-h-svh flex items-center justify-center px-4 py-10 bg-linear-to-b from-duo-bg to-duo-green/5">
+    <main className="h-full flex items-center justify-center px-4 py-10 bg-linear-to-b from-duo-bg to-duo-green/5">
       <div className="w-full max-w-md mx-auto flex flex-col items-center gap-6">
         <div className="flex flex-col items-center gap-1">
           <div className="animate-bounce-soft">
