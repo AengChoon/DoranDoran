@@ -9,6 +9,10 @@ build
 .turbo
 out
 
+# serwist (PWA service worker — regenerated per build)
+apps/web/public/sw.js
+apps/web/public/swe-worker-*.js
+
 # env
 .env
 .env.local
