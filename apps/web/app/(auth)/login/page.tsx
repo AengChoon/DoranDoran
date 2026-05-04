@@ -1,22 +1,31 @@
-import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+"use client";
+import * as React from "react";
+import { useRouter } from "next/navigation";
 import { Mascot } from "@/components/Mascot";
 import { Wordmark } from "@/components/Wordmark";
-import { hasSessionCookie } from "@/lib/session";
+import { useMe } from "@/lib/api/me";
 import { LoginForm } from "./LoginForm";
 
-export const metadata: Metadata = {
-  title: "로그인",
-};
+/**
+ * 로그인 페이지.
+ *
+ * 정적 export 호스팅 — 서버 측 redirect 불가. 클라이언트에서 /auth/me 호출하고
+ * 이미 로그인 상태면 /feed로 redirect.
+ *
+ * metadata는 정적 export 시 Next.js가 build-time에 추출 — 'use client'에선 못 export.
+ * 그래서 별도 layout 또는 head 처리는 추후 (현재는 root layout의 metadata만).
+ */
+export default function LoginPage() {
+  const router = useRouter();
+  const me = useMe();
 
-export default async function LoginPage() {
-  if (await hasSessionCookie()) {
-    redirect("/feed");
-  }
+  React.useEffect(() => {
+    if (me.user) router.replace("/feed");
+  }, [me.user, router]);
+
   return (
     <main className="min-h-svh flex items-center justify-center px-4 py-10 bg-linear-to-b from-duo-bg to-duo-green/5">
       <div className="w-full max-w-md mx-auto flex flex-col items-center gap-6">
-        {/* 마스코트 + 워드마크는 한 묶음으로 가깝게 */}
         <div className="flex flex-col items-center gap-1">
           <div className="animate-bounce-soft">
             <Mascot variant="pair" size="xl" />

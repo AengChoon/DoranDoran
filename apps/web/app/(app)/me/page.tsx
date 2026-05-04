@@ -1,46 +1,29 @@
-import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+"use client";
 import { Mascot } from "@/components/Mascot";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { useMe } from "@/lib/api/me";
 import { LogoutButton } from "./LogoutButton";
 
-export const metadata: Metadata = {
-  title: "나",
-};
+/**
+ * "나" 페이지 — 본인 프로필 + 로그아웃.
+ *
+ * 정적 export 호스팅 — useMe로 클라이언트 측 fetch.
+ * AuthGuard가 (app) 레이아웃 단에서 인증 체크 — 여기 도달했으면 user 있음 가정.
+ */
+export default function MePage() {
+  const me = useMe();
 
-type Me = {
-  user: {
-    id: string;
-    email: string;
-    displayName: string;
-    nativeLang: "ko" | "ja";
-    learningLang: "ko" | "ja";
-  };
-};
-
-async function fetchMe(cookie: string): Promise<Me | null> {
-  const apiBase = process.env.API_INTERNAL_BASE ?? "http://localhost:8787";
-  try {
-    const res = await fetch(`${apiBase}/auth/me`, {
-      headers: { cookie },
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as Me;
-  } catch {
-    return null;
+  if (me.isLoading || !me.user) {
+    return (
+      <main className="max-w-md mx-auto px-4 py-10 flex flex-col items-center gap-6">
+        <Skeleton className="h-20 w-20 rounded-full" />
+        <Skeleton className="h-6 w-32" />
+        <Skeleton className="h-32 w-full" />
+      </main>
+    );
   }
-}
 
-export default async function MePage() {
-  const cookieStore = await cookies();
-  const cookieHeader = cookieStore
-    .getAll()
-    .map((c) => `${c.name}=${c.value}`)
-    .join("; ");
-
-  const me = await fetchMe(cookieHeader);
-  if (!me) redirect("/login");
+  const user = me.user;
 
   return (
     <main className="max-w-md mx-auto px-4 py-10 flex flex-col items-center gap-6">
@@ -48,17 +31,17 @@ export default async function MePage() {
 
       <div className="text-center">
         <h1 className="text-2xl font-extrabold text-duo-text">
-          {me.user.displayName}
+          {user.displayName}
         </h1>
-        <p className="mt-1 text-sm text-duo-text-muted">{me.user.email}</p>
+        <p className="mt-1 text-sm text-duo-text-muted">{user.email}</p>
       </div>
 
       <div className="card-duo w-full">
         <Row label="학습 언어">
-          {me.user.learningLang === "ja" ? "일본어" : "한국어"}
+          {user.learningLang === "ja" ? "일본어" : "한국어"}
         </Row>
         <Row label="모국어">
-          {me.user.nativeLang === "ja" ? "일본어" : "한국어"}
+          {user.nativeLang === "ja" ? "일본어" : "한국어"}
         </Row>
       </div>
 

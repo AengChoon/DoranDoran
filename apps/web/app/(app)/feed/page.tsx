@@ -1,5 +1,6 @@
 "use client";
 import * as React from "react";
+import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { CardWithMeta } from "@dorandoran/shared";
@@ -39,7 +40,16 @@ type PendingJump =
   | { type: "date"; key: string }
   | { type: "card"; key: string };
 
+// 정적 export 호환 — useSearchParams 사용 컴포넌트는 Suspense로 감싸야 함
 export default function FeedPage() {
+  return (
+    <Suspense fallback={<FeedSkeleton />}>
+      <FeedPageInner />
+    </Suspense>
+  );
+}
+
+function FeedPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const showEmpty = searchParams.get("empty") === "1";
