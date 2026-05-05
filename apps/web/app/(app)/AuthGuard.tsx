@@ -22,9 +22,10 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     if (me.isLoading) return;
     if (!me.user) router.replace("/login");
+    else if (me.user.onboardedAt == null) router.replace("/onboarding");
   }, [me.isLoading, me.user, router]);
 
-  if (me.isLoading || !me.user) {
+  if (me.isLoading || !me.user || me.user.onboardedAt == null) {
     return (
       <main className="max-w-md mx-auto px-4 py-4">
         <div className="flex flex-col gap-3">

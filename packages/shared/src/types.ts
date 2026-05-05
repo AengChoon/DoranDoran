@@ -17,6 +17,7 @@ export type UserPublic = {
   nativeLang: Lang;
   learningLang: Lang;
   avatarUrl: string | null;
+  onboardedAt: number | null;
 } & Syncable;
 
 /**

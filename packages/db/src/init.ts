@@ -22,6 +22,7 @@ export function initSchema(sqlite: BetterSqliteDatabase) {
       learning_lang TEXT NOT NULL,
       avatar_url TEXT,
       push_subscription TEXT,
+      onboarded_at INTEGER,
       created_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
       updated_at INTEGER NOT NULL DEFAULT (unixepoch() * 1000),
       deleted_at INTEGER
@@ -93,6 +94,7 @@ export function initSchema(sqlite: BetterSqliteDatabase) {
   // (구버전 DB에서 컬럼이 없으면 추가. 새 DB엔 무관)
   ensureColumn(sqlite, "users", "updated_at", "INTEGER NOT NULL DEFAULT 0");
   ensureColumn(sqlite, "users", "deleted_at", "INTEGER");
+  ensureColumn(sqlite, "users", "onboarded_at", "INTEGER");
 
   ensureColumn(sqlite, "cards", "furigana", "TEXT");
   ensureColumn(sqlite, "cards", "confirmed_at", "INTEGER");

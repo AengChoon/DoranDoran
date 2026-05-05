@@ -3,6 +3,7 @@ import { setCookie, deleteCookie } from "hono/cookie";
 import { zValidator } from "@hono/zod-validator";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { z } from "zod";
 import { magicLinkRequestSchema } from "@dorandoran/shared";
 import { magicLinks, users } from "@dorandoran/db";
 import { env, ownerEmails } from "../env";
@@ -14,6 +15,13 @@ import {
   getSession,
 } from "../auth";
 import { sendMagicLinkEmail } from "../mailer";
+import { uploadAvatar, deleteAvatarByUrl, AvatarUploadError } from "../storage/avatars";
+
+const profileUpdateSchema = z.object({
+  displayName: z.string().trim().min(1).max(40),
+  nativeLang: z.enum(["ko", "ja"]),
+  learningLang: z.enum(["ko", "ja"]),
+});
 
 const TOKEN_TTL_MS = 15 * 60 * 1000;
 
@@ -80,20 +88,20 @@ export const authRoutes = new Hono()
       .where(eq(magicLinks.token, token))
       .run();
 
-    // 사용자 조회 또는 생성
+    // 사용자 조회 또는 생성 — onboarding 전엔 임시 displayName(이메일 prefix)/언어 default.
+    // 실제 본인 정보는 /onboarding 화면에서 PATCH /auth/me로 채움 (onboardedAt도 그때 설정).
     let user = db.select().from(users).where(eq(users.email, row.email)).get();
     if (!user) {
       const id = nanoid();
-      // 첫 로그인하는 사람의 학습 언어는 환경변수 순서로 결정 — 첫 번째 이메일은 한국인(일본어 학습), 두 번째는 일본인(한국어 학습)
-      const ownerList = [...ownerEmails];
-      const isFirst = ownerList[0] === row.email;
+      const tempName = row.email.split("@")[0] ?? "user";
       db.insert(users)
         .values({
           id,
           email: row.email,
-          displayName: isFirst ? "나" : "파트너",
-          nativeLang: isFirst ? "ko" : "ja",
-          learningLang: isFirst ? "ja" : "ko",
+          displayName: tempName,
+          nativeLang: "ko",
+          learningLang: "ja",
+          // onboardedAt = null — AuthGuard가 /onboarding으로 보냄
         })
         .run();
       user = db.select().from(users).where(eq(users.email, row.email)).get()!;
@@ -132,6 +140,7 @@ export const authRoutes = new Hono()
       nativeLang: u.nativeLang,
       learningLang: u.learningLang,
       avatarUrl: u.avatarUrl,
+      onboardedAt: u.onboardedAt,
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
       deletedAt: u.deletedAt,
@@ -141,4 +150,67 @@ export const authRoutes = new Hono()
       user: toPublic(me),
       partner: partner ? toPublic(partner) : null,
     });
+  })
+
+  .patch("/me", authMiddleware, zValidator("json", profileUpdateSchema), async (c) => {
+    const session = getSession(c);
+    const { displayName, nativeLang, learningLang } = c.req.valid("json");
+    const db = getDb();
+    const now = Date.now();
+
+    db.update(users)
+      .set({
+        displayName,
+        nativeLang,
+        learningLang,
+        onboardedAt: now,
+        updatedAt: now,
+      })
+      .where(eq(users.id, session.userId))
+      .run();
+
+    return c.json({ ok: true });
+  })
+
+  .post("/me/avatar", authMiddleware, async (c) => {
+    const session = getSession(c);
+    const db = getDb();
+
+    // multipart/form-data — file 필드명 "avatar"
+    const body = await c.req.parseBody();
+    const file = body["avatar"];
+    if (!(file instanceof File)) {
+      return c.json({ error: "missing 'avatar' file field" }, 400);
+    }
+
+    const buffer = new Uint8Array(await file.arrayBuffer());
+
+    // 옛 아바타 URL 조회 (성공 후 삭제)
+    const current = db
+      .select({ avatarUrl: users.avatarUrl })
+      .from(users)
+      .where(eq(users.id, session.userId))
+      .get();
+    const oldUrl = current?.avatarUrl ?? null;
+
+    let newUrl: string;
+    try {
+      newUrl = await uploadAvatar(session.userId, buffer, file.type);
+    } catch (err) {
+      if (err instanceof AvatarUploadError) {
+        return c.json({ error: err.message }, 400);
+      }
+      console.error("[avatar] upload failed:", err);
+      return c.json({ error: "upload failed" }, 500);
+    }
+
+    db.update(users)
+      .set({ avatarUrl: newUrl, updatedAt: Date.now() })
+      .where(eq(users.id, session.userId))
+      .run();
+
+    // 옛 파일 삭제 (best-effort, 실패해도 lifecycle이 정리)
+    void deleteAvatarByUrl(oldUrl);
+
+    return c.json({ ok: true, avatarUrl: newUrl });
   });

@@ -33,6 +33,8 @@ export const users = sqliteTable("users", {
   learningLang: text("learning_lang", { enum: ["ko", "ja"] }).notNull(),
   avatarUrl: text("avatar_url"),
   pushSubscription: text("push_subscription"),
+  // 프로필 셋업 완료 시각 — null이면 /onboarding으로 강제 redirect
+  onboardedAt: integer("onboarded_at"),
   createdAt: integer("created_at").notNull().default(now()),
   updatedAt: integer("updated_at").notNull().default(now()),
   deletedAt: integer("deleted_at"),
