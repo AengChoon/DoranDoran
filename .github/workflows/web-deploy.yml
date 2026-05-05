@@ -18,6 +18,11 @@ permissions:
   id-token: write   # OIDC 토큰 발급
   contents: read
 
+env:
+  # aws-actions/configure-aws-credentials 등 Node 20 액션을 Node 24로 강제.
+  # 2026-06-02부터 Node 24가 기본, 2026-09-16에 Node 20 제거 예정.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
