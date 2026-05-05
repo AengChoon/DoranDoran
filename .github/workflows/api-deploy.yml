@@ -32,25 +32,29 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ap-northeast-2
+          aws-region: ${{ secrets.AWS_REGION }}
 
       # EC2에서 git pull → pnpm install → systemctl restart
       - name: Trigger deploy via SSM
         id: ssm
+        env:
+          DEPLOY_USER: ${{ secrets.API_DEPLOY_USER }}
+          REPO_PATH: ${{ secrets.API_REPO_PATH }}
+          SERVICE_NAME: ${{ secrets.API_SERVICE_NAME }}
         run: |
           CMD_ID=$(aws ssm send-command \
             --instance-ids ${{ secrets.API_INSTANCE_ID }} \
             --document-name "AWS-RunShellScript" \
             --timeout-seconds 300 \
-            --parameters '{"commands":[
-              "set -e",
-              "cd /home/ssm-user/DoranDoran",
-              "sudo -u ssm-user git pull --ff-only",
-              "sudo -u ssm-user pnpm --filter @dorandoran/api install --no-frozen-lockfile 2>&1 | tail -5",
-              "sudo systemctl restart dorandoran-api",
-              "sleep 3",
-              "sudo systemctl is-active dorandoran-api"
-            ]}' \
+            --parameters "{\"commands\":[
+              \"set -e\",
+              \"cd $REPO_PATH\",
+              \"sudo -u $DEPLOY_USER git pull --ff-only\",
+              \"sudo -u $DEPLOY_USER pnpm --filter @dorandoran/api install --no-frozen-lockfile 2>&1 | tail -5\",
+              \"sudo systemctl restart $SERVICE_NAME\",
+              \"sleep 3\",
+              \"sudo systemctl is-active $SERVICE_NAME\"
+            ]}" \
             --query "Command.CommandId" --output text)
           echo "cmd_id=$CMD_ID" >> $GITHUB_OUTPUT
           echo "SSM command: $CMD_ID"
