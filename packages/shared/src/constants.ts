@@ -7,9 +7,6 @@ export const APP_TAGLINE_JA = "ふたりでドランドラン" as const;
 export const LANGS = ["ko", "ja"] as const;
 export type Lang = (typeof LANGS)[number];
 
-export const REACTION_EMOJIS = ["👍", "❤️", "🔥", "😂", "🤔", "💯", "✨"] as const;
-export type ReactionEmoji = (typeof REACTION_EMOJIS)[number];
-
 export const REVIEW_QUALITY = {
   AGAIN: 1,
   HARD: 2,

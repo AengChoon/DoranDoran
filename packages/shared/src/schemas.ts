@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { LANGS, REACTION_EMOJIS } from "./constants";
+import { LANGS } from "./constants";
 
 export const langSchema = z.enum(LANGS);
 
@@ -9,8 +9,19 @@ export const emailSchema = z
   .toLowerCase()
   .email({ message: "이메일 형식이 올바르지 않아요" });
 
-export const magicLinkRequestSchema = z.object({
+export const pinRequestSchema = z.object({
   email: emailSchema,
+});
+
+/** 6자리 숫자 PIN — 앞자리 0 허용. */
+export const pinCodeSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{6}$/, { message: "6자리 숫자를 입력해주세요" });
+
+export const pinVerifyRequestSchema = z.object({
+  email: emailSchema,
+  code: pinCodeSchema,
 });
 
 export const furiganaPartSchema = z.object({
@@ -35,10 +46,6 @@ export const commentCreateSchema = z.object({
   body: z.string().min(1).max(2000),
 });
 
-export const reactionCreateSchema = z.object({
-  emoji: z.enum(REACTION_EMOJIS),
-});
-
 export const reviewSubmitSchema = z.object({
   quality: z.number().int().min(0).max(5),
 });
@@ -52,10 +59,10 @@ export const pushSubscribeSchema = z.object({
   }),
 });
 
-export type MagicLinkRequest = z.infer<typeof magicLinkRequestSchema>;
+export type PinRequest = z.infer<typeof pinRequestSchema>;
+export type PinVerifyRequest = z.infer<typeof pinVerifyRequestSchema>;
 export type CardCreate = z.infer<typeof cardCreateSchema>;
 export type CardUpdate = z.infer<typeof cardUpdateSchema>;
 export type CommentCreate = z.infer<typeof commentCreateSchema>;
-export type ReactionCreate = z.infer<typeof reactionCreateSchema>;
 export type ReviewSubmit = z.infer<typeof reviewSubmitSchema>;
 export type PushSubscription = z.infer<typeof pushSubscribeSchema>;

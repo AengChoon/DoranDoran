@@ -4,7 +4,6 @@ import {
   integer,
   real,
   primaryKey,
-  uniqueIndex,
   index,
 } from "drizzle-orm/sqlite-core";
 import { relations, sql } from "drizzle-orm";
@@ -14,15 +13,14 @@ const now = () => sql`(unixepoch() * 1000)`;
 /**
  * 도란도란 DB 스키마.
  *
- * 동기 가능한 모든 엔티티는 다음 3 컬럼을 공통으로 가진다:
- *   - createdAt   : 생성 시각 (ms)
- *   - updatedAt   : 마지막 변경 시각 (ms) — sync since 비교 기준
- *   - deletedAt   : null이면 정상, 값 있으면 소프트 삭제 (톰스톤)
+ * 동기 가능한 모든 엔티티는 createdAt/updatedAt/deletedAt 트리오를 가짐.
+ * deletedAt이 있으면 톰스톤(소프트 삭제) — 클라이언트는 로컬에서 제거.
  *
- * 클라이언트는 GET /sync?since=T 로 updatedAt > T 인 모든 엔티티를 받음.
- * deletedAt 있으면 로컬에서 제거, 없으면 upsert.
+ * GET /sync?since=T 로 updatedAt > T 인 모든 엔티티를 받아옴.
+ *   - deletedAt 있음 → 로컬에서 제거
+ *   - 없음 → upsert
  *
- * magic_links는 동기 대상 아님 (서버 전용).
+ * pinCodes는 sync 대상 아님 (서버 전용).
  */
 
 export const users = sqliteTable("users", {
@@ -32,13 +30,14 @@ export const users = sqliteTable("users", {
   nativeLang: text("native_lang", { enum: ["ko", "ja"] }).notNull(),
   learningLang: text("learning_lang", { enum: ["ko", "ja"] }).notNull(),
   avatarUrl: text("avatar_url"),
-  pushSubscription: text("push_subscription"),
   // 프로필 셋업 완료 시각 — null이면 /onboarding으로 강제 redirect
   onboardedAt: integer("onboarded_at"),
   createdAt: integer("created_at").notNull().default(now()),
   updatedAt: integer("updated_at").notNull().default(now()),
   deletedAt: integer("deleted_at"),
-});
+}, (t) => ({
+  byUpdated: index("users_updated_idx").on(t.updatedAt),
+}));
 
 export const cards = sqliteTable(
   "cards",
@@ -52,7 +51,6 @@ export const cards = sqliteTable(
     meaning: text("meaning").notNull(),
     example: text("example"),
     note: text("note"),
-    audioS3Key: text("audio_s3_key"),
     tags: text("tags"), // JSON array
     /** FuriganaPart[] JSON */
     furigana: text("furigana"),
@@ -83,7 +81,6 @@ export const comments = sqliteTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     body: text("body").notNull(),
-    audioS3Key: text("audio_s3_key"),
     createdAt: integer("created_at").notNull().default(now()),
     updatedAt: integer("updated_at").notNull().default(now()),
     deletedAt: integer("deleted_at"),
@@ -119,13 +116,22 @@ export const reviewStates = sqliteTable(
   }),
 );
 
-export const magicLinks = sqliteTable("magic_links", {
-  token: text("token").primaryKey(),
+/**
+ * 로그인 PIN — 이메일로 6자리 코드 보내고 같은 브라우저에서 입력.
+ *
+ * 동일 email에 대해 새 PIN 발급 시 기존 unconsumed 행은 삭제 → 항상 1개만 유효.
+ * brute-force 방어: attempts >= MAX_PIN_ATTEMPTS 면 소진 처리.
+ */
+export const pinCodes = sqliteTable("pin_codes", {
+  code: text("code").primaryKey(),
   email: text("email").notNull(),
   expiresAt: integer("expires_at").notNull(),
   consumedAt: integer("consumed_at"),
+  attempts: integer("attempts").notNull().default(0),
   createdAt: integer("created_at").notNull().default(now()),
-});
+}, (t) => ({
+  byEmail: index("pin_codes_email_idx").on(t.email),
+}));
 
 // ─── Relations ────────────────────────────────────────
 export const usersRelations = relations(users, ({ many }) => ({
@@ -152,4 +158,4 @@ export type DbCardInsert = typeof cards.$inferInsert;
 export type DbComment = typeof comments.$inferSelect;
 export type DbCommentInsert = typeof comments.$inferInsert;
 export type DbReviewState = typeof reviewStates.$inferSelect;
-export type DbMagicLink = typeof magicLinks.$inferSelect;
+export type DbPinCode = typeof pinCodes.$inferSelect;

@@ -79,7 +79,6 @@ export const cardRoutes = new Hono()
         meaning: row.meaning,
         example: row.example,
         note: row.note,
-        audioUrl: null,
         tags: row.tags ? (JSON.parse(row.tags) as string[]) : [],
         furigana: parseFurigana(row.furigana),
         confirmedAt: row.confirmedAt,
@@ -147,7 +146,6 @@ export const cardRoutes = new Hono()
         ...row,
         tags: row.tags ? (JSON.parse(row.tags) as string[]) : [],
         furigana: parseFurigana(row.furigana),
-        audioUrl: null,
         commentCount: Number(commentCountRow?.count ?? 0),
       },
     });

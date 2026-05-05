@@ -39,7 +39,6 @@ export type Card = {
   meaning: string;
   example: string | null;
   note: string | null;
-  audioUrl: string | null;
   tags: string[];
   /** 한자별 후리가나 매핑 (일본어 카드만) */
   furigana: FuriganaPart[] | null;
@@ -54,7 +53,6 @@ export type Comment = {
   cardId: string;
   authorId: string;
   body: string;
-  audioUrl: string | null;
 } & Syncable;
 
 export type ReviewState = {

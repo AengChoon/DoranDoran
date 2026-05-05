@@ -1,11 +1,15 @@
 import { Hono } from "hono";
 import { setCookie, deleteCookie } from "hono/cookie";
 import { zValidator } from "@hono/zod-validator";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, isNull, gt } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { randomInt } from "node:crypto";
 import { z } from "zod";
-import { magicLinkRequestSchema } from "@dorandoran/shared";
-import { magicLinks, users } from "@dorandoran/db";
+import {
+  pinRequestSchema,
+  pinVerifyRequestSchema,
+} from "@dorandoran/shared";
+import { pinCodes, users } from "@dorandoran/db";
 import { env, ownerEmails } from "../env";
 import { getDb } from "../db";
 import {
@@ -14,7 +18,7 @@ import {
   authMiddleware,
   getSession,
 } from "../auth";
-import { sendMagicLinkEmail } from "../mailer";
+import { sendPinEmail } from "../mailer";
 import { uploadAvatar, deleteAvatarByUrl, AvatarUploadError } from "../storage/avatars";
 
 const profileUpdateSchema = z.object({
@@ -23,95 +27,136 @@ const profileUpdateSchema = z.object({
   learningLang: z.enum(["ko", "ja"]),
 });
 
-const TOKEN_TTL_MS = 15 * 60 * 1000;
+const PIN_TTL_MS = 10 * 60 * 1000;
+const MAX_PIN_ATTEMPTS = 5;
+
+function generatePin(): string {
+  // crypto.randomInt 0~999999 → 6자리 zero-pad
+  return randomInt(0, 1_000_000).toString().padStart(6, "0");
+}
 
 export const authRoutes = new Hono()
-  .post("/magic-link", zValidator("json", magicLinkRequestSchema), async (c) => {
+  .post("/request-pin", zValidator("json", pinRequestSchema), async (c) => {
     const { email } = c.req.valid("json");
 
     // 화이트리스트 외 이메일이어도 200 — 존재 여부 노출하지 않음
     if (!ownerEmails.has(email)) {
-      console.log(`[auth] magic-link: ignored non-owner ${email}`);
+      console.log(`[auth] request-pin: ignored non-owner ${email}`);
       return c.json({ ok: true });
     }
 
     const db = getDb();
-    const token = nanoid(40);
     const now = Date.now();
 
-    db.insert(magicLinks)
-      .values({
-        token,
-        email,
-        expiresAt: now + TOKEN_TTL_MS,
-      })
+    // 동일 email의 미소비 PIN은 모두 무효화 — 항상 1개만 valid
+    db.delete(pinCodes)
+      .where(and(eq(pinCodes.email, email), isNull(pinCodes.consumedAt)))
       .run();
 
-    const link = `${env.API_ORIGIN}/auth/verify?token=${token}`;
-
-    try {
-      await sendMagicLinkEmail(email, link);
-    } catch (err) {
-      // 메일 발송 실패해도 클라이언트엔 200 — 이메일 존재 여부 노출 방지
-      // 토큰은 DB에 살아있으니 재시도 시 동일 시점에 새 토큰 발급
-      console.error(`[auth] magic-link send failed for ${email}:`, err);
+    // 1M 공간에서 동시 활성 PIN 극소 (whitelist 2명) → 충돌 거의 없지만
+    // 안전하게 5회 재시도.
+    let code = generatePin();
+    let inserted = false;
+    for (let i = 0; i < 5 && !inserted; i++) {
+      try {
+        db.insert(pinCodes)
+          .values({
+            code,
+            email,
+            expiresAt: now + PIN_TTL_MS,
+          })
+          .run();
+        inserted = true;
+      } catch {
+        code = generatePin();
+      }
+    }
+    if (!inserted) {
+      console.error(`[auth] request-pin: PIN collision exhausted for ${email}`);
+      return c.json({ ok: true });
     }
 
-    // dev 모드 — 응답에 link 직접 포함해 메일 안 받고도 즉시 로그인 가능
-    // prod (NODE_ENV=production)에선 절대 노출 X
+    try {
+      await sendPinEmail(email, code);
+    } catch (err) {
+      console.error(`[auth] pin send failed for ${email}:`, err);
+    }
+
+    // dev 모드 — 응답에 code 포함해 메일 안 받고도 즉시 입력 가능
     const isDev = process.env.NODE_ENV !== "production";
-    return c.json(isDev ? { ok: true, devLink: link } : { ok: true });
+    return c.json(isDev ? { ok: true, devCode: code } : { ok: true });
   })
 
-  .get("/verify", async (c) => {
-    const token = c.req.query("token");
-    if (!token) return c.text("missing token", 400);
-
+  .post("/verify-pin", zValidator("json", pinVerifyRequestSchema), async (c) => {
+    const { email, code } = c.req.valid("json");
     const db = getDb();
     const now = Date.now();
 
+    // 화이트리스트 외 이메일도 같은 형태의 에러 — 이메일 존재 여부 노출 X
+    if (!ownerEmails.has(email)) {
+      return c.json({ error: "invalid code" }, 400);
+    }
+
+    // 해당 이메일의 가장 최근 미소비·미만료 PIN
     const row = db
       .select()
-      .from(magicLinks)
-      .where(eq(magicLinks.token, token))
+      .from(pinCodes)
+      .where(
+        and(
+          eq(pinCodes.email, email),
+          isNull(pinCodes.consumedAt),
+          gt(pinCodes.expiresAt, now),
+        ),
+      )
+      .orderBy(desc(pinCodes.createdAt))
       .get();
 
-    if (!row) return c.text("invalid token", 400);
-    if (row.consumedAt !== null) return c.text("token already used", 400);
-    if (row.expiresAt < now) return c.text("token expired", 400);
+    if (!row) return c.json({ error: "invalid code" }, 400);
 
-    if (!ownerEmails.has(row.email)) return c.text("not authorized", 403);
+    // 시도 횟수 초과 — PIN 소진하고 거절
+    if (row.attempts >= MAX_PIN_ATTEMPTS) {
+      db.update(pinCodes)
+        .set({ consumedAt: now })
+        .where(eq(pinCodes.code, row.code))
+        .run();
+      return c.json({ error: "too many attempts" }, 400);
+    }
 
-    // 토큰 소비 처리
-    db.update(magicLinks)
+    if (row.code !== code) {
+      db.update(pinCodes)
+        .set({ attempts: row.attempts + 1 })
+        .where(eq(pinCodes.code, row.code))
+        .run();
+      return c.json({ error: "invalid code" }, 400);
+    }
+
+    // 성공 — PIN 소진 + 세션 발급
+    db.update(pinCodes)
       .set({ consumedAt: now })
-      .where(eq(magicLinks.token, token))
+      .where(eq(pinCodes.code, row.code))
       .run();
 
-    // 사용자 조회 또는 생성 — onboarding 전엔 임시 displayName(이메일 prefix)/언어 default.
-    // 실제 본인 정보는 /onboarding 화면에서 PATCH /auth/me로 채움 (onboardedAt도 그때 설정).
-    let user = db.select().from(users).where(eq(users.email, row.email)).get();
+    let user = db.select().from(users).where(eq(users.email, email)).get();
     if (!user) {
       const id = nanoid();
-      const tempName = row.email.split("@")[0] ?? "user";
+      const tempName = email.split("@")[0] ?? "user";
       db.insert(users)
         .values({
           id,
-          email: row.email,
+          email,
           displayName: tempName,
           nativeLang: "ko",
           learningLang: "ja",
           // onboardedAt = null — AuthGuard가 /onboarding으로 보냄
         })
         .run();
-      user = db.select().from(users).where(eq(users.email, row.email)).get()!;
+      user = db.select().from(users).where(eq(users.email, email)).get()!;
     }
 
     const jwt = await signSession({ userId: user.id, email: user.email });
     setCookie(c, sessionCookie.name, jwt, sessionCookie.options);
 
-    // 웹 도메인 절대 경로로 리다이렉트 — API/web이 다른 origin이므로 상대경로 X
-    return c.redirect(`${env.WEB_ORIGIN}/feed`);
+    return c.json({ ok: true });
   })
 
   .post("/logout", async (c) => {
