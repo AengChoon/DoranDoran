@@ -49,7 +49,10 @@ export const authRoutes = new Hono()
       console.error(`[auth] magic-link send failed for ${email}:`, err);
     }
 
-    return c.json({ ok: true });
+    // dev 모드 — 응답에 link 직접 포함해 메일 안 받고도 즉시 로그인 가능
+    // prod (NODE_ENV=production)에선 절대 노출 X
+    const isDev = process.env.NODE_ENV !== "production";
+    return c.json(isDev ? { ok: true, devLink: link } : { ok: true });
   })
 
   .get("/verify", async (c) => {

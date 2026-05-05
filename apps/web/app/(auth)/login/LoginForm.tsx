@@ -6,7 +6,11 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { apiFetch } from "@/lib/api/client";
 
-type Status = { kind: "idle" } | { kind: "loading" } | { kind: "sent"; email: string } | { kind: "error"; message: string };
+type Status =
+  | { kind: "idle" }
+  | { kind: "loading" }
+  | { kind: "sent"; email: string; devLink?: string }
+  | { kind: "error"; message: string };
 
 export function LoginForm() {
   const [email, setEmail] = React.useState("");
@@ -25,11 +29,15 @@ export function LoginForm() {
     try {
       // 정적 export 호스팅 — apiFetch가 NEXT_PUBLIC_API_BASE로 cross-origin 호출.
       // SameSite=Lax + 같은 eTLD+1로 cookie 처리 OK.
-      await apiFetch<{ ok: true }>("/auth/magic-link", {
-        method: "POST",
-        body: JSON.stringify({ email: parsed.data.email }),
-      });
-      setStatus({ kind: "sent", email: parsed.data.email });
+      // dev 모드면 응답에 devLink 포함 → "메일 보냈어요" 화면에서 즉시 로그인 가능
+      const data = await apiFetch<{ ok: true; devLink?: string }>(
+        "/auth/magic-link",
+        {
+          method: "POST",
+          body: JSON.stringify({ email: parsed.data.email }),
+        },
+      );
+      setStatus({ kind: "sent", email: parsed.data.email, devLink: data?.devLink });
     } catch {
       // 네트워크 실패해도 이메일 존재 여부 노출 안 함 — UX는 동일
       setStatus({ kind: "sent", email: parsed.data.email });
@@ -52,6 +60,14 @@ export function LoginForm() {
           도란도란 시작 링크를 보냈어요.<br />
           메일함을 확인해주세요.
         </p>
+        {status.devLink && (
+          <a
+            href={status.devLink}
+            className="btn-duo bg-duo-yellow text-white shadow-[0_4px_0_0_#E0A800] active:shadow-[0_0_0_0_#E0A800] hover:brightness-105 h-12 px-5 text-base mt-2 w-full"
+          >
+            🚀 dev 즉시 로그인
+          </a>
+        )}
         <Button
           variant="ghost"
           size="sm"

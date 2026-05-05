@@ -40,39 +40,36 @@ export default function LoginPage() {
   }, [me.user, router]);
 
   return (
-    <main className="h-full flex flex-col bg-linear-to-b from-duo-bg to-duo-green/5">
-      <div className="flex-1 flex items-center justify-center px-4 py-10">
-        <div className="w-full max-w-md mx-auto flex flex-col items-center gap-6">
-          <div className="flex flex-col items-center gap-1">
-            <div className="animate-bounce-soft">
-              <Mascot variant="pair" size="xl" />
-            </div>
-            <Wordmark size="xl" />
+    <main className="h-full flex items-center justify-center px-4 py-10 bg-linear-to-b from-duo-bg to-duo-green/5">
+      <div className="w-full max-w-md mx-auto flex flex-col items-center gap-6">
+        <div className="flex flex-col items-center gap-1">
+          <div className="animate-bounce-soft">
+            <Mascot variant="pair" size="xl" />
           </div>
-
-          <p className="text-center text-duo-text text-base leading-relaxed">
-            오늘도 둘이서 도란도란.
-            <br />
-            이메일 한 줄이면 시작할 수 있어요.
-          </p>
-
-          <div className="w-full mt-2">
-            <LoginForm />
-          </div>
+          <Wordmark size="xl" />
         </div>
-      </div>
 
-      <footer className="flex justify-center pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <p className="text-center text-duo-text text-base leading-relaxed">
+          오늘도 둘이서 도란도란.
+          <br />
+          이메일 한 줄이면 시작할 수 있어요.
+        </p>
+
+        <div className="w-full mt-2">
+          <LoginForm />
+        </div>
+
+        {/* GitHub 링크 — 듀오링고 ghost 스타일 (흰 배경 + 회색 4px shadow + active 눌림) */}
         <a
           href={REPO_URL}
           target="_blank"
           rel="noopener noreferrer"
           aria-label="GitHub repository"
-          className="text-duo-text-muted hover:text-duo-text transition-colors p-2"
+          className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white border-2 border-duo-border text-duo-text-muted shadow-[0_4px_0_0_#C5C5C5] hover:text-duo-text active:translate-y-[2px] active:shadow-[0_0_0_0_#C5C5C5] transition-[transform,box-shadow] duration-100"
         >
           <GithubMark className="h-5 w-5" />
         </a>
-      </footer>
+      </div>
     </main>
   );
 }
