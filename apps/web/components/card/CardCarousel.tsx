@@ -52,14 +52,16 @@ export function CardCarousel({ card, trailing }: Props) {
         </SegBtn>
       </div>
 
+      {/* 스크롤러는 모달의 px-4를 -mx-4로 상쇄해 sheet 가장자리까지 확장.
+          각 페이지가 w-full + 내부 px-4를 가져 CardView 위치는 단일 모드와 동일. */}
       <div
         ref={scrollerRef}
-        className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar"
+        className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar -mx-4"
       >
-        <div className="snap-start shrink-0 w-full">
+        <div className="snap-start shrink-0 w-full px-4">
           <CardView card={card} mode="corrected" trailing={trailing} />
         </div>
-        <div className="snap-start shrink-0 w-full">
+        <div className="snap-start shrink-0 w-full px-4">
           <CardView card={card} mode="original" />
         </div>
       </div>
