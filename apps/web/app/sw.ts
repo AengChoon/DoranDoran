@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 import { defaultCache } from "@serwist/next/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
-import { Serwist } from "serwist";
+import { CacheFirst, ExpirationPlugin, Serwist } from "serwist";
 
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
@@ -18,7 +18,23 @@ const serwist = new Serwist({
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
-  runtimeCaching: defaultCache,
+  runtimeCaching: [
+    // 아바타 — path-versioned URL이라 immutable. CacheFirst로 한 번 받으면 끝.
+    // (defaultCache의 image matcher는 SWR이라 매번 background revalidate가 일어남)
+    {
+      matcher: ({ url }) => url.pathname.startsWith("/avatars/"),
+      handler: new CacheFirst({
+        cacheName: "avatars",
+        plugins: [
+          new ExpirationPlugin({
+            maxEntries: 20,
+            maxAgeSeconds: 60 * 60 * 24 * 365, // 1년
+          }),
+        ],
+      }),
+    },
+    ...defaultCache,
+  ],
 });
 
 serwist.addEventListeners();

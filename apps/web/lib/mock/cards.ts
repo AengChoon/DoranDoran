@@ -8,12 +8,14 @@ export const mockUsers: { me: FeedUser; her: FeedUser } = {
     id: "u1",
     displayName: "준",
     nativeLang: "ko",
+    avatarUrl: null,
     avatarColor: "#58CC02",
   },
   her: {
     id: "u2",
     displayName: "さくら",
     nativeLang: "ja",
+    avatarUrl: null,
     avatarColor: "#FF6B6B",
   },
 };

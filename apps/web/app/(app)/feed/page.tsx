@@ -281,6 +281,7 @@ function FeedPageInner() {
           id: meUser.id,
           displayName: meUser.displayName,
           nativeLang: meUser.nativeLang,
+          avatarUrl: meUser.avatarUrl,
           avatarColor: AVATAR_COLOR[meUser.nativeLang],
         }}
         partner={
@@ -289,12 +290,14 @@ function FeedPageInner() {
                 id: me.partner.id,
                 displayName: me.partner.displayName,
                 nativeLang: me.partner.nativeLang,
+                avatarUrl: me.partner.avatarUrl,
                 avatarColor: AVATAR_COLOR[me.partner.nativeLang],
               }
             : {
                 id: "—",
                 displayName: "—",
                 nativeLang: "ja",
+                avatarUrl: null,
                 avatarColor: "#E5E5E5",
               }
         }

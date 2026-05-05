@@ -9,6 +9,8 @@ export type FeedUser = {
   id: string;
   displayName: string;
   nativeLang: Lang;
+  /** 업로드한 프로필 사진 URL — 있으면 이미지, 없으면 이니셜+avatarColor */
+  avatarUrl: string | null;
   /** 아바타 배경색 (이니셜 표시용) */
   avatarColor: string;
 };

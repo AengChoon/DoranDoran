@@ -80,9 +80,15 @@ export function FeedHeader({
           <>
             <div className="flex items-center gap-2 flex-1 min-w-0 pl-1">
               <div className="flex items-center -space-x-2 shrink-0">
-                <Avatar name={me.displayName} bg={me.avatarColor} size="md" />
+                <Avatar
+                  name={me.displayName}
+                  src={me.avatarUrl}
+                  bg={me.avatarColor}
+                  size="md"
+                />
                 <Avatar
                   name={partner.displayName}
+                  src={partner.avatarUrl}
                   bg={partner.avatarColor}
                   size="md"
                 />
