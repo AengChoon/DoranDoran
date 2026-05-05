@@ -49,7 +49,7 @@ export default function RootLayout({
       className={nunito.variable}
       suppressHydrationWarning
     >
-      <body className="min-h-dvh bg-duo-bg text-duo-text">
+      <body className="h-dvh bg-duo-bg text-duo-text">
         <Providers>{children}</Providers>
       </body>
     </html>
