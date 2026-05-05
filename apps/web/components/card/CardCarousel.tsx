@@ -54,13 +54,12 @@ export function CardCarousel({ card, trailing }: Props) {
 
       <div
         ref={scrollerRef}
-        className="flex overflow-x-auto snap-x snap-mandatory -mx-4 px-4 no-scrollbar"
-        style={{ scrollSnapType: "x mandatory" }}
+        className="flex overflow-x-auto snap-x snap-mandatory no-scrollbar"
       >
-        <div className="snap-start shrink-0 basis-full pr-3">
+        <div className="snap-start shrink-0 w-full">
           <CardView card={card} mode="corrected" trailing={trailing} />
         </div>
-        <div className="snap-start shrink-0 basis-full pl-3">
+        <div className="snap-start shrink-0 w-full">
           <CardView card={card} mode="original" />
         </div>
       </div>
