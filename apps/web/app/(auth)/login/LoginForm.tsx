@@ -4,6 +4,7 @@ import { MailCheck } from "lucide-react";
 import { magicLinkRequestSchema } from "@dorandoran/shared";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { apiFetch } from "@/lib/api/client";
 
 type Status = { kind: "idle" } | { kind: "loading" } | { kind: "sent"; email: string } | { kind: "error"; message: string };
 
@@ -22,14 +23,12 @@ export function LoginForm() {
 
     setStatus({ kind: "loading" });
     try {
-      // Next rewrites로 /api/* → API 서버. 같은 origin이라 쿠키 자동 처리.
-      const res = await fetch("/api/auth/magic-link", {
+      // 정적 export 호스팅 — apiFetch가 NEXT_PUBLIC_API_BASE로 cross-origin 호출.
+      // SameSite=Lax + 같은 eTLD+1로 cookie 처리 OK.
+      await apiFetch<{ ok: true }>("/auth/magic-link", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: parsed.data.email }),
-        credentials: "include",
       });
-      if (!res.ok) throw new Error("network");
       setStatus({ kind: "sent", email: parsed.data.email });
     } catch {
       // 네트워크 실패해도 이메일 존재 여부 노출 안 함 — UX는 동일
