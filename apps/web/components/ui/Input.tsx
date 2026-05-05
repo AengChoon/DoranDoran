@@ -8,7 +8,7 @@ import { cn } from "@/lib/cn";
 const inputBase =
   "w-full rounded-duo-sm border-2 border-duo-border bg-duo-bg " +
   "text-base font-semibold text-duo-text " +
-  "placeholder:font-medium placeholder:text-duo-text-muted " +
+  "placeholder:font-normal placeholder:text-duo-text-muted/50 " +
   "transition-colors duration-150 " +
   "focus:outline-hidden focus:border-duo-blue " +
   "disabled:opacity-50";

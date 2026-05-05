@@ -133,7 +133,7 @@ export function FeedHeader({
               onKeyDown={onKeyDown}
               placeholder={t.feedHeader.searchPlaceholder}
               aria-label={t.feedHeader.searchAria}
-              className="flex-1 min-w-0 bg-transparent outline-hidden text-base font-semibold text-duo-text placeholder:font-medium placeholder:text-duo-text-muted"
+              className="flex-1 min-w-0 bg-transparent outline-hidden text-base font-semibold text-duo-text placeholder:font-normal placeholder:text-duo-text-muted/50"
             />
 
             {/* 매치 nav */}
