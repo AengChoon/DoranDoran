@@ -53,6 +53,15 @@ export const ko = {
     nextMatchAria: "다음 매치",
     searchCloseAria: "검색 닫기",
   },
+  comments: {
+    title: "댓글",
+    empty: "아직 댓글이 없어요",
+    placeholder: "댓글을 입력하세요",
+    send: "보내기",
+    sending: "보내는 중…",
+    deleteAria: "댓글 삭제",
+    deleteConfirm: "이 댓글을 삭제할까요?",
+  },
   locale: {
     /** 언어 토글 버튼 — 현재 locale에서 보여줄 "전환" 라벨 */
     switchToJa: "日本語",

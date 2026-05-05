@@ -54,6 +54,15 @@ export const ja: Dict = {
     nextMatchAria: "次の一致",
     searchCloseAria: "検索を閉じる",
   },
+  comments: {
+    title: "コメント",
+    empty: "まだコメントがありません",
+    placeholder: "コメントを入力",
+    send: "送信",
+    sending: "送信中…",
+    deleteAria: "コメント削除",
+    deleteConfirm: "このコメントを削除しますか?",
+  },
   locale: {
     switchToJa: "日本語",
     switchToKo: "한국어",

@@ -4,6 +4,7 @@ import { Pencil, Check as CheckIcon, Trash2 } from "lucide-react";
 import type { CardWithMeta, UserPublic } from "@dorandoran/shared";
 import { Button } from "@/components/ui/Button";
 import { CardForm } from "@/components/card/CardForm";
+import { CommentSection } from "@/components/card/CommentSection";
 import { Furigana } from "@/components/card/Furigana";
 import { RelativeTime } from "@/components/ui/RelativeTime";
 import {
@@ -176,6 +177,8 @@ export function CardDetail({
           </>
         )}
       </div>
+
+      <CommentSection cardId={card.id} meId={me?.id} />
     </>
   );
 }
