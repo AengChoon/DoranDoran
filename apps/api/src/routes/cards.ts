@@ -1,14 +1,15 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { eq, desc, lt, sql, inArray, isNull, and } from "drizzle-orm";
+import { eq, desc, lt, isNull, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import {
   cardCreateSchema,
   cardUpdateSchema,
-  commentCreateSchema,
+  cardConfirmSchema,
+  type Correction,
   type FuriganaPart,
 } from "@dorandoran/shared";
-import { cards, comments } from "@dorandoran/db";
+import { cards } from "@dorandoran/db";
 import { authMiddleware, getSession } from "../auth";
 import { getDb } from "../db";
 
@@ -21,6 +22,17 @@ function parseFurigana(raw: string | null): FuriganaPart[] | null {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return null;
     return parsed as FuriganaPart[];
+  } catch {
+    return null;
+  }
+}
+
+function parseCorrection(raw: string | null): Correction | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed as Correction;
   } catch {
     return null;
   }
@@ -55,21 +67,6 @@ export const cardRoutes = new Hono()
     const last = items[items.length - 1];
     const nextCursor = hasMore && last ? String(last.createdAt) : null;
 
-    const ids = items.map((r) => r.id);
-    const counts =
-      ids.length > 0
-        ? db
-            .select({
-              cardId: comments.cardId,
-              count: sql<number>`count(*)`.as("count"),
-            })
-            .from(comments)
-            .where(and(inArray(comments.cardId, ids), isNull(comments.deletedAt)))
-            .groupBy(comments.cardId)
-            .all()
-        : [];
-    const countMap = new Map(counts.map((c) => [c.cardId, Number(c.count)]));
-
     return c.json({
       items: items.map((row) => ({
         id: row.id,
@@ -83,10 +80,10 @@ export const cardRoutes = new Hono()
         furigana: parseFurigana(row.furigana),
         confirmedAt: row.confirmedAt,
         confirmedBy: row.confirmedBy,
+        correction: parseCorrection(row.correction),
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
         deletedAt: row.deletedAt,
-        commentCount: countMap.get(row.id) ?? 0,
       })),
       nextCursor,
     });
@@ -135,23 +132,18 @@ export const cardRoutes = new Hono()
       .get();
     if (!row) return c.json({ error: "not_found" }, 404);
 
-    const commentCountRow = db
-      .select({ count: sql<number>`count(*)`.as("count") })
-      .from(comments)
-      .where(and(eq(comments.cardId, id), isNull(comments.deletedAt)))
-      .get();
-
     return c.json({
       card: {
         ...row,
         tags: row.tags ? (JSON.parse(row.tags) as string[]) : [],
         furigana: parseFurigana(row.furigana),
-        commentCount: Number(commentCountRow?.count ?? 0),
+        correction: parseCorrection(row.correction),
       },
     });
   })
 
-  // 수정
+  // 수정 — author 본인만. 원본 수정 시 옛 첨삭이 새 원본과 어긋날 수 있어
+  // confirmed_at, confirmed_by, correction 모두 자동 무효화 → 대기 상태로 복귀.
   .patch("/:id", zValidator("json", cardUpdateSchema), async (c) => {
     const session = getSession(c);
     const id = c.req.param("id");
@@ -193,6 +185,10 @@ export const cardRoutes = new Hono()
                   : null,
             }
           : {}),
+        // 첨삭 자동 무효화
+        confirmedAt: null,
+        confirmedBy: null,
+        correction: null,
         updatedAt: Date.now(),
       })
       .where(eq(cards.id, id))
@@ -225,10 +221,12 @@ export const cardRoutes = new Hono()
     return c.json({ ok: true });
   })
 
-  // 원어민 확인
-  .post("/:id/confirm", async (c) => {
+  // 원어민 확인 (+ 선택적 첨삭). body의 correction이 있으면 같이 저장.
+  // 비어있거나 빈 객체면 "그대로 OK".
+  .post("/:id/confirm", zValidator("json", cardConfirmSchema), async (c) => {
     const session = getSession(c);
     const id = c.req.param("id");
+    const { correction } = c.req.valid("json");
     const db = getDb();
 
     const existing = db
@@ -240,16 +238,30 @@ export const cardRoutes = new Hono()
     if (existing.authorId === session.userId)
       return c.json({ error: "cannot_confirm_own_card" }, 400);
 
+    // 빈 객체는 null로 저장 (모든 필드가 비어있으면 의미 없음)
+    const hasAnyField =
+      correction != null &&
+      (correction.target ||
+        correction.meaning ||
+        correction.example ||
+        correction.note);
+    const correctionJson = hasAnyField ? JSON.stringify(correction) : null;
+
     const now = Date.now();
     db.update(cards)
-      .set({ confirmedAt: now, confirmedBy: session.userId, updatedAt: now })
+      .set({
+        confirmedAt: now,
+        confirmedBy: session.userId,
+        correction: correctionJson,
+        updatedAt: now,
+      })
       .where(eq(cards.id, id))
       .run();
 
     return c.json({ ok: true });
   })
 
-  // 확인 취소
+  // 확인 취소 — 첨삭자 본인만. confirmed_at/confirmed_by/correction 모두 클리어.
   .delete("/:id/confirm", async (c) => {
     const session = getSession(c);
     const id = c.req.param("id");
@@ -265,70 +277,13 @@ export const cardRoutes = new Hono()
       return c.json({ error: "forbidden" }, 403);
 
     db.update(cards)
-      .set({ confirmedAt: null, confirmedBy: null, updatedAt: Date.now() })
-      .where(eq(cards.id, id))
-      .run();
-
-    return c.json({ ok: true });
-  })
-
-  .post("/:id/audio-upload-url", async (c) => {
-    return c.json({ todo: "presigned URL", url: null, key: null });
-  })
-
-  // 댓글 생성
-  .post("/:id/comments", zValidator("json", commentCreateSchema), async (c) => {
-    const session = getSession(c);
-    const cardId = c.req.param("id");
-    const input = c.req.valid("json");
-    const db = getDb();
-
-    const card = db
-      .select()
-      .from(cards)
-      .where(and(eq(cards.id, cardId), isNull(cards.deletedAt)))
-      .get();
-    if (!card) return c.json({ error: "not_found" }, 404);
-
-    const id = nanoid();
-    const now = Date.now();
-    db.insert(comments)
-      .values({
-        id,
-        cardId,
-        authorId: session.userId,
-        body: input.body,
-        createdAt: now,
-        updatedAt: now,
+      .set({
+        confirmedAt: null,
+        confirmedBy: null,
+        correction: null,
+        updatedAt: Date.now(),
       })
-      .run();
-
-    // 카드의 updatedAt도 갱신 — 댓글 추가도 카드 변경으로 간주 (sync 트리거)
-    db.update(cards).set({ updatedAt: now }).where(eq(cards.id, cardId)).run();
-
-    const row = db.select().from(comments).where(eq(comments.id, id)).get();
-    return c.json({ comment: row }, 201);
-  })
-
-  // 댓글 삭제 (소프트)
-  .delete("/:id/comments/:commentId", async (c) => {
-    const session = getSession(c);
-    const commentId = c.req.param("commentId");
-    const db = getDb();
-
-    const existing = db
-      .select()
-      .from(comments)
-      .where(and(eq(comments.id, commentId), isNull(comments.deletedAt)))
-      .get();
-    if (!existing) return c.json({ error: "not_found" }, 404);
-    if (existing.authorId !== session.userId)
-      return c.json({ error: "forbidden" }, 403);
-
-    const now = Date.now();
-    db.update(comments)
-      .set({ deletedAt: now, updatedAt: now })
-      .where(eq(comments.id, commentId))
+      .where(eq(cards.id, id))
       .run();
 
     return c.json({ ok: true });

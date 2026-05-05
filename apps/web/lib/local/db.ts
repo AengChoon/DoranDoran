@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import type { Card, Comment, UserPublic } from "@dorandoran/shared";
+import type { Card, UserPublic } from "@dorandoran/shared";
 
 /**
  * 로컬 IndexedDB — 도란도란 클라이언트 데이터 스토어.
@@ -9,15 +9,13 @@ import type { Card, Comment, UserPublic } from "@dorandoran/shared";
  * 인덱스 설계:
  *  - cards: id(PK) / authorId / lang / confirmedAt / createdAt / updatedAt / deletedAt
  *      - [authorId+createdAt] 복합 인덱스로 "내 카드 시간순" 빠르게
- *  - comments: id(PK) / cardId / authorId / createdAt / updatedAt / deletedAt
  *  - users: id(PK) / email / updatedAt
  *  - meta: key(PK) — lastSyncAt 같은 단일 값 저장용
  *
- * 스키마 변경 시 this.version(N+1).stores({...}).upgrade(...)로 마이그레이션.
+ * v2: comments 테이블 제거 (첨삭은 Card.correction에 JSON으로 들어감).
  */
 
 export type LocalCard = Card;
-export type LocalComment = Comment;
 export type LocalUser = UserPublic;
 
 export type MetaEntry = {
@@ -27,16 +25,24 @@ export type MetaEntry = {
 
 class DoranDB extends Dexie {
   cards!: Table<LocalCard, string>;
-  comments!: Table<LocalComment, string>;
   users!: Table<LocalUser, string>;
   meta!: Table<MetaEntry, string>;
 
   constructor() {
     super("dorandoran");
+    // v1 — comments 포함된 옛 스키마
     this.version(1).stores({
       cards:
         "id, authorId, lang, confirmedAt, createdAt, updatedAt, deletedAt, [authorId+createdAt]",
       comments: "id, cardId, authorId, createdAt, updatedAt, deletedAt",
+      users: "id, email, updatedAt",
+      meta: "key",
+    });
+    // v2 — comments 테이블 제거. 옛 클라엔서 자동 마이그레이션 (테이블 그냥 사라짐).
+    this.version(2).stores({
+      cards:
+        "id, authorId, lang, confirmedAt, createdAt, updatedAt, deletedAt, [authorId+createdAt]",
+      comments: null,
       users: "id, email, updatedAt",
       meta: "key",
     });
@@ -69,9 +75,8 @@ export async function setLastSyncAt(value: number): Promise<void> {
 /** 로그아웃 시 호출 — 모든 로컬 데이터 비움 */
 export async function clearLocalDb(): Promise<void> {
   const db = getLocalDb();
-  await db.transaction("rw", db.cards, db.comments, db.users, db.meta, async () => {
+  await db.transaction("rw", db.cards, db.users, db.meta, async () => {
     await db.cards.clear();
-    await db.comments.clear();
     await db.users.clear();
     await db.meta.clear();
   });

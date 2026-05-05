@@ -1,7 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useMemo } from "react";
-import type { CardCreate, CardUpdate, CardWithMeta } from "@dorandoran/shared";
+import type {
+  CardCreate,
+  CardUpdate,
+  CardWithMeta,
+  Correction,
+} from "@dorandoran/shared";
 import { apiFetch } from "./client";
 import { getLocalDb } from "@/lib/local/db";
 import { syncDelta } from "@/lib/local/sync";
@@ -15,12 +20,6 @@ import { syncDelta } from "@/lib/local/sync";
 
 // ─── 읽기 (로컬 DB) ──────────────────────────────────
 
-/**
- * 카드 목록 — 로컬 DB에서 최신순으로.
- *
- * @param sinceTs - 이 timestamp(ms) 이상인 카드만. null/undefined면 전체.
- *                  검색 시에는 전체 로드(null), 평소엔 최근 N일.
- */
 export function useCardsList(sinceTs?: number | null) {
   return useLiveQuery(
     async () => {
@@ -34,22 +33,7 @@ export function useCardsList(sinceTs?: number | null) {
               .reverse()
               .toArray();
       // deletedAt은 sync에서 이미 제거됐지만 안전하게 한 번 더 필터
-      const items = all.filter((c) => c.deletedAt === null);
-      const counts = await Promise.all(
-        items.map(async (c) => {
-          const n = await db.comments
-            .where("cardId")
-            .equals(c.id)
-            .filter((cm) => cm.deletedAt === null)
-            .count();
-          return [c.id, n] as const;
-        }),
-      );
-      const countMap = new Map(counts);
-      return items.map<CardWithMeta>((c) => ({
-        ...c,
-        commentCount: countMap.get(c.id) ?? 0,
-      }));
+      return all.filter((c) => c.deletedAt === null) as CardWithMeta[];
     },
     [sinceTs ?? null],
     [] as CardWithMeta[],
@@ -77,33 +61,9 @@ export function useCard(id: string | null | undefined) {
       const db = getLocalDb();
       const card = await db.cards.get(id);
       if (!card || card.deletedAt !== null) return null;
-      const commentCount = await db.comments
-        .where("cardId")
-        .equals(id)
-        .filter((c) => c.deletedAt === null)
-        .count();
-      const result: CardWithMeta = { ...card, commentCount };
-      return result;
+      return card as CardWithMeta;
     },
     [id],
-  );
-}
-
-export function useCommentsForCard(cardId: string | null | undefined) {
-  return useLiveQuery(
-    async () => {
-      if (!cardId) return [];
-      const db = getLocalDb();
-      const comments = await db.comments
-        .where("cardId")
-        .equals(cardId)
-        .toArray();
-      return comments
-        .filter((c) => c.deletedAt === null)
-        .sort((a, b) => a.createdAt - b.createdAt);
-    },
-    [cardId],
-    [],
   );
 }
 
@@ -111,11 +71,11 @@ export function useCommentsForCard(cardId: string | null | undefined) {
 
 type SearchableCard = Pick<
   CardWithMeta,
-  "targetText" | "meaning" | "example" | "note" | "furigana"
+  "targetText" | "meaning" | "example" | "note" | "furigana" | "correction"
 >;
 
 /**
- * 카드 검색 매칭. targetText만 substring 매칭한다.
+ * 카드 검색 매칭. corrected target이 있으면 그걸로, 없으면 원본 targetText.
  * 빈 query면 false.
  */
 export function cardMatchesQuery(
@@ -124,7 +84,8 @@ export function cardMatchesQuery(
 ): boolean {
   const q = query.trim().toLowerCase();
   if (!q) return false;
-  return card.targetText.toLowerCase().includes(q);
+  const target = card.correction?.target?.text ?? card.targetText;
+  return target.toLowerCase().includes(q);
 }
 
 /**
@@ -179,11 +140,22 @@ export function useDeleteCard() {
   });
 }
 
+/**
+ * 첨삭 완료 — 옵션으로 correction 같이 보냄.
+ * correction이 비거나 없으면 "그대로 OK" (confirmed_at만 set).
+ */
 export function useConfirmCard() {
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({
+      id,
+      correction,
+    }: {
+      id: string;
+      correction?: Correction;
+    }) => {
       const res = await apiFetch<{ ok: true }>(`/cards/${id}/confirm`, {
         method: "POST",
+        body: JSON.stringify({ correction }),
       });
       await syncDelta({ force: true });
       return res;

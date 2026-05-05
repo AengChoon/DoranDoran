@@ -42,8 +42,28 @@ export const cardCreateSchema = z.object({
 
 export const cardUpdateSchema = cardCreateSchema.partial();
 
-export const commentCreateSchema = z.object({
-  body: z.string().min(1).max(2000),
+/** 한 필드 첨삭 — text/comment 모두 옵션, 둘 다 비면 키 자체가 없어야 함. */
+const correctionFieldSchema = z
+  .object({
+    text: z.string().min(1).max(2000).optional(),
+    comment: z.string().min(1).max(2000).optional(),
+    furigana: z.array(furiganaPartSchema).max(50).nullish(),
+  })
+  .refine(
+    (v) => v.text != null || v.comment != null,
+    { message: "필드 첨삭은 text 또는 comment 중 하나는 있어야 해요" },
+  );
+
+export const correctionSchema = z.object({
+  target: correctionFieldSchema.optional(),
+  meaning: correctionFieldSchema.optional(),
+  example: correctionFieldSchema.optional(),
+  note: correctionFieldSchema.optional(),
+});
+
+/** POST /cards/:id/confirm 본문 — correction이 비어있거나 없으면 "그대로 OK". */
+export const cardConfirmSchema = z.object({
+  correction: correctionSchema.optional(),
 });
 
 export const reviewSubmitSchema = z.object({
@@ -63,6 +83,6 @@ export type PinRequest = z.infer<typeof pinRequestSchema>;
 export type PinVerifyRequest = z.infer<typeof pinVerifyRequestSchema>;
 export type CardCreate = z.infer<typeof cardCreateSchema>;
 export type CardUpdate = z.infer<typeof cardUpdateSchema>;
-export type CommentCreate = z.infer<typeof commentCreateSchema>;
+export type CardConfirm = z.infer<typeof cardConfirmSchema>;
 export type ReviewSubmit = z.infer<typeof reviewSubmitSchema>;
 export type PushSubscription = z.infer<typeof pushSubscribeSchema>;

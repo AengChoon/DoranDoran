@@ -53,14 +53,32 @@ export const ko = {
     nextMatchAria: "다음 매치",
     searchCloseAria: "검색 닫기",
   },
-  comments: {
-    title: "댓글",
-    empty: "아직 댓글이 없어요",
-    placeholder: "댓글을 입력하세요",
-    send: "보내기",
-    sending: "보내는 중…",
-    deleteAria: "댓글 삭제",
-    deleteConfirm: "이 댓글을 삭제할까요?",
+  card: {
+    fieldTarget: "학습 단어",
+    fieldMeaning: "뜻",
+    fieldExample: "예문",
+    fieldNote: "메모",
+    original: "원본",
+    corrected: "첨삭본",
+    /** 첨삭 진입 버튼 (대기 카드 보는 상대) */
+    correct: "첨삭하기",
+    /** 첨삭 모드 하단 완료 버튼 */
+    correctDone: "첨삭 완료",
+    correctSaving: "저장 중…",
+    correctEdit: "첨삭 수정",
+    correctUndo: "첨삭 취소",
+    correctUndoConfirm: "첨삭을 취소할까요?",
+    /** 인라인 패널 */
+    fieldEdit: "수정",
+    fieldComment: "코멘트",
+    fieldEditPlaceholder: "첨삭본 입력",
+    fieldCommentPlaceholder: "한 줄 설명 (선택)",
+    fieldRevert: "원본으로",
+    fieldOk: "확인",
+    fieldCancel: "취소",
+    /** 첨삭 모드 종료 시 변경 사항 표시 */
+    cancelCorrect: "취소",
+    deleteConfirm: "이 카드를 삭제할까요?",
   },
   locale: {
     /** 언어 토글 버튼 — 현재 locale에서 보여줄 "전환" 라벨 */

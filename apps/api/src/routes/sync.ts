@@ -2,12 +2,12 @@ import { Hono } from "hono";
 import { gt } from "drizzle-orm";
 import type {
   Card,
-  Comment,
+  Correction,
   FuriganaPart,
   SyncResponse,
   UserPublic,
 } from "@dorandoran/shared";
-import { cards, comments, users } from "@dorandoran/db";
+import { cards, users } from "@dorandoran/db";
 import { authMiddleware } from "../auth";
 import { getDb } from "../db";
 
@@ -22,6 +22,17 @@ function parseFurigana(raw: string | null): FuriganaPart[] | null {
   }
 }
 
+function parseCorrection(raw: string | null): Correction | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed as Correction;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * 델타 싱크 엔드포인트.
  *
@@ -29,13 +40,7 @@ function parseFurigana(raw: string | null): FuriganaPart[] | null {
  *   - since=0 또는 미지정: 모든 비삭제 엔티티 (첫 동기화)
  *   - since=T (>0): updatedAt > T 인 모든 엔티티 (deletedAt 포함 — 톰스톤도 전달)
  *
- * 응답:
- *   { cards, comments, users, serverTime }
- *
- * 클라이언트 처리:
- *   - deletedAt 있음 → 로컬에서 제거
- *   - 없음 → upsert
- *   - 다음 sync 시 since = serverTime
+ * 응답: { cards, users, serverTime }
  */
 export const syncRoutes = new Hono()
   .use("*", authMiddleware)
@@ -46,16 +51,10 @@ export const syncRoutes = new Hono()
     const db = getDb();
     const serverTime = Date.now();
 
-    // 첫 동기화면 비삭제만, 그 이후엔 변경된 모든 행(톰스톤 포함)
     const cardRows =
       since === 0
         ? db.select().from(cards).where(gt(cards.updatedAt, 0)).all()
         : db.select().from(cards).where(gt(cards.updatedAt, since)).all();
-
-    const commentRows =
-      since === 0
-        ? db.select().from(comments).where(gt(comments.updatedAt, 0)).all()
-        : db.select().from(comments).where(gt(comments.updatedAt, since)).all();
 
     const userRows =
       since === 0
@@ -74,16 +73,7 @@ export const syncRoutes = new Hono()
       furigana: parseFurigana(row.furigana),
       confirmedAt: row.confirmedAt,
       confirmedBy: row.confirmedBy,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-      deletedAt: row.deletedAt,
-    }));
-
-    const commentItems: Comment[] = commentRows.map((row) => ({
-      id: row.id,
-      cardId: row.cardId,
-      authorId: row.authorId,
-      body: row.body,
+      correction: parseCorrection(row.correction),
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       deletedAt: row.deletedAt,
@@ -104,7 +94,6 @@ export const syncRoutes = new Hono()
 
     const payload: SyncResponse = {
       cards: cardItems,
-      comments: commentItems,
       users: userItems,
       serverTime,
     };

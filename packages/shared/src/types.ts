@@ -31,6 +31,26 @@ export type FuriganaPart = {
   ruby: string | null;
 };
 
+/**
+ * 한 필드의 첨삭 — 본문 수정과 코멘트 둘 다 옵션.
+ * `text`만 있으면 텍스트만 고침. `comment`만 있으면 텍스트 그대로 + 설명만.
+ * 둘 다 비면 그 필드의 키 자체가 없어야 함.
+ */
+export type CorrectionField = {
+  text?: string;
+  comment?: string;
+  /** target 필드 한정 — 일본어 첨삭 시 후리가나도 다시 매핑 */
+  furigana?: FuriganaPart[] | null;
+};
+
+/** 카드 첨삭본 — 4개 필드 각각 optional. 빈 객체는 "checked, no edits"와 동일. */
+export type Correction = {
+  target?: CorrectionField;
+  meaning?: CorrectionField;
+  example?: CorrectionField;
+  note?: CorrectionField;
+};
+
 export type Card = {
   id: string;
   authorId: string;
@@ -42,17 +62,12 @@ export type Card = {
   tags: string[];
   /** 한자별 후리가나 매핑 (일본어 카드만) */
   furigana: FuriganaPart[] | null;
-  /** 원어민 확인 시각 — null이면 대기 상태 */
+  /** 원어민 확인 시각 — null이면 대기. confirmed면 ✓ (correction 유무 무관). */
   confirmedAt: number | null;
   /** 누가 확인했는지 (원어민 user id) */
   confirmedBy: string | null;
-} & Syncable;
-
-export type Comment = {
-  id: string;
-  cardId: string;
-  authorId: string;
-  body: string;
+  /** 첨삭본 — confirmed_at 있어도 비어있을 수 있음 (= 그대로 OK). */
+  correction: Correction | null;
 } & Syncable;
 
 export type ReviewState = {
@@ -65,9 +80,7 @@ export type ReviewState = {
   lastReviewedAt: number | null;
 } & Syncable;
 
-export type CardWithMeta = Card & {
-  commentCount: number;
-};
+export type CardWithMeta = Card;
 
 export type CardListResponse = {
   items: CardWithMeta[];
@@ -90,7 +103,6 @@ export type MeResponse = {
  */
 export type SyncResponse = {
   cards: Card[];
-  comments: Comment[];
   users: UserPublic[];
   serverTime: number;
 };

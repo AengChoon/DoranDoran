@@ -54,11 +54,13 @@ export const cards = sqliteTable(
     tags: text("tags"), // JSON array
     /** FuriganaPart[] JSON */
     furigana: text("furigana"),
-    /** 원어민 확인 시각. null이면 대기. */
+    /** 원어민 확인 시각. null이면 대기. correction 유무와 무관 — confirmed면 ✓. */
     confirmedAt: integer("confirmed_at"),
     confirmedBy: text("confirmed_by").references(() => users.id, {
       onDelete: "set null",
     }),
+    /** 첨삭본 — JSON {target?, meaning?, example?, note?}, 각 필드 {text?, comment?, furigana?}. */
+    correction: text("correction"),
     createdAt: integer("created_at").notNull().default(now()),
     updatedAt: integer("updated_at").notNull().default(now()),
     deletedAt: integer("deleted_at"),
@@ -67,27 +69,6 @@ export const cards = sqliteTable(
     byAuthor: index("cards_author_idx").on(t.authorId),
     byCreated: index("cards_created_idx").on(t.createdAt),
     byUpdated: index("cards_updated_idx").on(t.updatedAt),
-  }),
-);
-
-export const comments = sqliteTable(
-  "comments",
-  {
-    id: text("id").primaryKey(),
-    cardId: text("card_id")
-      .notNull()
-      .references(() => cards.id, { onDelete: "cascade" }),
-    authorId: text("author_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    body: text("body").notNull(),
-    createdAt: integer("created_at").notNull().default(now()),
-    updatedAt: integer("updated_at").notNull().default(now()),
-    deletedAt: integer("deleted_at"),
-  },
-  (t) => ({
-    byCard: index("comments_card_idx").on(t.cardId),
-    byUpdated: index("comments_updated_idx").on(t.updatedAt),
   }),
 );
 
@@ -136,18 +117,11 @@ export const pinCodes = sqliteTable("pin_codes", {
 // ─── Relations ────────────────────────────────────────
 export const usersRelations = relations(users, ({ many }) => ({
   cards: many(cards),
-  comments: many(comments),
   reviewStates: many(reviewStates),
 }));
 
-export const cardsRelations = relations(cards, ({ one, many }) => ({
+export const cardsRelations = relations(cards, ({ one }) => ({
   author: one(users, { fields: [cards.authorId], references: [users.id] }),
-  comments: many(comments),
-}));
-
-export const commentsRelations = relations(comments, ({ one }) => ({
-  card: one(cards, { fields: [comments.cardId], references: [cards.id] }),
-  author: one(users, { fields: [comments.authorId], references: [users.id] }),
 }));
 
 // ─── Inferred types ───────────────────────────────────
@@ -155,7 +129,5 @@ export type DbUser = typeof users.$inferSelect;
 export type DbUserInsert = typeof users.$inferInsert;
 export type DbCard = typeof cards.$inferSelect;
 export type DbCardInsert = typeof cards.$inferInsert;
-export type DbComment = typeof comments.$inferSelect;
-export type DbCommentInsert = typeof comments.$inferInsert;
 export type DbReviewState = typeof reviewStates.$inferSelect;
 export type DbPinCode = typeof pinCodes.$inferSelect;

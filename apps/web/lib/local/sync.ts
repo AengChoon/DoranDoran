@@ -59,48 +59,29 @@ async function run(force: boolean) {
   }
 
   const db = getLocalDb();
-  await db.transaction(
-    "rw",
-    db.cards,
-    db.comments,
-    db.users,
-    db.meta,
-    async () => {
-      // cards
-      for (const card of resp.cards) {
-        if (card.deletedAt !== null) {
-          await db.cards.delete(card.id);
-        } else {
-          await db.cards.put(card);
-        }
+  await db.transaction("rw", db.cards, db.users, db.meta, async () => {
+    // cards
+    for (const card of resp.cards) {
+      if (card.deletedAt !== null) {
+        await db.cards.delete(card.id);
+      } else {
+        await db.cards.put(card);
       }
-      // comments
-      for (const comment of resp.comments) {
-        if (comment.deletedAt !== null) {
-          await db.comments.delete(comment.id);
-        } else {
-          await db.comments.put(comment);
-        }
+    }
+    // users
+    for (const user of resp.users) {
+      if (user.deletedAt !== null) {
+        await db.users.delete(user.id);
+      } else {
+        await db.users.put(user);
       }
-      // users
-      for (const user of resp.users) {
-        if (user.deletedAt !== null) {
-          await db.users.delete(user.id);
-        } else {
-          await db.users.put(user);
-        }
-      }
-      await setLastSyncAt(resp.serverTime);
-    },
-  );
+    }
+    await setLastSyncAt(resp.serverTime);
+  });
 
-  if (
-    resp.cards.length > 0 ||
-    resp.comments.length > 0 ||
-    resp.users.length > 0
-  ) {
+  if (resp.cards.length > 0 || resp.users.length > 0) {
     console.log(
-      `[sync] applied ${resp.cards.length} cards, ${resp.comments.length} comments, ${resp.users.length} users (since=${since})`,
+      `[sync] applied ${resp.cards.length} cards, ${resp.users.length} users (since=${since})`,
     );
   }
 }

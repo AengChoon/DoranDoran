@@ -1,17 +1,17 @@
 "use client";
 import * as React from "react";
-import { Pencil, Check as CheckIcon, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import type { CardWithMeta, UserPublic } from "@dorandoran/shared";
 import { Button } from "@/components/ui/Button";
+import { CardCarousel } from "@/components/card/CardCarousel";
 import { CardForm } from "@/components/card/CardForm";
-import { CommentSection } from "@/components/card/CommentSection";
-import { Furigana } from "@/components/card/Furigana";
-import { RelativeTime } from "@/components/ui/RelativeTime";
+import { CardView } from "@/components/card/CardView";
+import { CorrectionForm } from "@/components/card/CorrectionForm";
 import {
-  useConfirmCard,
   useDeleteCard,
   useUnconfirmCard,
 } from "@/lib/api/cards";
+import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 
 type Props = {
@@ -19,15 +19,19 @@ type Props = {
   me: Pick<UserPublic, "id"> | null | undefined;
   /** 삭제 후 콜백 (페이지: /feed로 push, 모달: close) */
   onAfterDelete: () => void;
-  /** 편집 저장 후 redirect 경로 — 모달이면 같은 카드, 페이지면 같은 카드 상세 */
+  /** 편집 저장 후 redirect 경로 */
   editRedirectTo: string;
 };
 
 /**
- * 카드 상세 뷰 — CardDetailModal에서 사용.
+ * 카드 상세 — 모달 안 본문.
  *
- * 자체 편집 모드 토글 (수정 버튼 → CardForm).
- * 확인/취소·삭제·수정 액션 포함. 닫기 등 외곽 navigation은 호출자 담당.
+ * 모드 분기:
+ *  - editing: 본인이 카드 본문 수정 (CardForm)
+ *  - correcting: 상대가 첨삭 모드 (CorrectionForm)
+ *  - 보기:
+ *    - 첨삭본 있음 → CardCarousel (첨삭본 ↔ 원본)
+ *    - 그 외 → 단일 CardView
  */
 export function CardDetail({
   card,
@@ -35,16 +39,23 @@ export function CardDetail({
   onAfterDelete,
   editRedirectTo,
 }: Props) {
-  const confirm = useConfirmCard();
+  const t = useT();
   const unconfirm = useUnconfirmCard();
   const del = useDeleteCard();
 
   const [editing, setEditing] = React.useState(false);
+  const [correcting, setCorrecting] = React.useState(false);
 
   const isMine = me?.id === card.authorId;
   const isConfirmed = card.confirmedAt !== null;
-  const meaningLang = card.lang === "ko" ? "ja" : "ko";
+  const hasCorrection =
+    card.correction != null &&
+    (card.correction.target ||
+      card.correction.meaning ||
+      card.correction.example ||
+      card.correction.note);
 
+  // ── 본인 카드 수정 모드
   if (editing) {
     return (
       <div>
@@ -72,130 +83,126 @@ export function CardDetail({
     );
   }
 
+  // ── 상대방 첨삭 모드
+  if (correcting) {
+    return (
+      <CorrectionForm
+        card={card}
+        onDone={() => setCorrecting(false)}
+        onCancel={() => setCorrecting(false)}
+      />
+    );
+  }
+
+  async function onDelete() {
+    if (!window.confirm(t.card.deleteConfirm)) return;
+    await del.mutateAsync(card.id);
+    onAfterDelete();
+  }
+
+  async function onUndoCorrect() {
+    if (!window.confirm(t.card.correctUndoConfirm)) return;
+    try {
+      await unconfirm.mutateAsync(card.id);
+    } catch {
+      // 무시 — 다음 sync로 복원
+    }
+  }
+
+  // article footer 우측에 들어갈 본인용 액션 (수정/삭제)
+  const ownerControls = isMine ? (
+    <div className="flex items-center gap-0.5 -mr-1.5">
+      <IconBtn label={t.card.fieldEdit} onClick={() => setEditing(true)}>
+        <Pencil className="h-4 w-4" strokeWidth={2.5} />
+      </IconBtn>
+      <IconBtn
+        label={t.card.deleteConfirm}
+        onClick={onDelete}
+        disabled={del.isPending}
+        tone="danger"
+      >
+        <Trash2 className="h-4 w-4" strokeWidth={2.5} />
+      </IconBtn>
+    </div>
+  ) : null;
+
   return (
     <>
-      <article
-        className={cn(
-          "rounded-duo-lg border-2 px-5 py-5 bg-white shadow-duo-card",
-          isConfirmed
-            ? "border-solid border-duo-border"
-            : "border-dashed border-duo-border",
-        )}
-      >
-        <h1
-          lang={card.lang}
-          className="text-3xl text-duo-text leading-[1.85] wrap-break-word"
-          style={{ fontWeight: 800, letterSpacing: "normal" }}
-        >
-          <Furigana text={card.targetText} parts={card.furigana ?? null} />
-        </h1>
-        <p
-          lang={meaningLang}
-          className="mt-2 text-lg font-semibold text-duo-text-muted leading-snug wrap-break-word"
-        >
-          {card.meaning}
-        </p>
+      {hasCorrection ? (
+        <CardCarousel card={card} trailing={ownerControls} />
+      ) : (
+        <CardView card={card} mode="original" trailing={ownerControls} />
+      )}
 
-        {card.example && (
-          <Section label="예문">
-            <p
-              lang={card.lang}
-              className="text-sm leading-relaxed text-duo-text-muted wrap-break-word"
-            >
-              {card.example}
-            </p>
-          </Section>
-        )}
-        {card.note && (
-          <Section label="메모">
-            <p className="text-sm leading-relaxed text-duo-text-muted wrap-break-word whitespace-pre-wrap">
-              {card.note}
-            </p>
-          </Section>
-        )}
-
-        <div className="mt-5 pt-3 border-t border-duo-border flex items-center justify-between text-xs text-duo-text-muted">
-          <span>{isMine ? "내 카드" : "파트너의 카드"}</span>
-          <RelativeTime ts={card.createdAt} />
-        </div>
-      </article>
-
-      <div className="mt-6 flex flex-col gap-2">
-        {isMine && (
-          <>
+      {/* 상대 카드일 때 액션 — 상태에 따라 다름 */}
+      {!isMine && me && (
+        <div className="mt-6 flex flex-col gap-2">
+          {!isConfirmed && (
             <Button
-              variant="secondary"
+              variant="primary"
               size="lg"
-              onClick={() => setEditing(true)}
+              onClick={() => setCorrecting(true)}
               className="w-full"
             >
-              <Pencil className="h-4 w-4 mr-2" />
-              수정
+              {t.card.correct}
             </Button>
-            <Button
-              variant="ghost"
-              size="md"
-              onClick={async () => {
-                if (!window.confirm("이 카드를 삭제할까요?")) return;
-                await del.mutateAsync(card.id);
-                onAfterDelete();
-              }}
-              disabled={del.isPending}
-              className="w-full"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              삭제
-            </Button>
-          </>
-        )}
-
-        {!isMine && me && (
-          <>
-            {isConfirmed ? (
+          )}
+          {isConfirmed && card.confirmedBy === me.id && (
+            <>
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => setCorrecting(true)}
+                className="w-full"
+              >
+                {t.card.correctEdit}
+              </Button>
               <Button
                 variant="ghost"
-                size="lg"
-                onClick={() => unconfirm.mutate(card.id)}
+                size="md"
+                onClick={onUndoCorrect}
                 disabled={unconfirm.isPending}
                 className="w-full"
               >
-                <CheckIcon className="h-4 w-4 mr-2" />
-                확인 취소
+                {t.card.correctUndo}
               </Button>
-            ) : (
-              <Button
-                variant="primary"
-                size="lg"
-                onClick={() => confirm.mutate(card.id)}
-                disabled={confirm.isPending}
-                className="w-full"
-              >
-                <CheckIcon className="h-4 w-4 mr-2" />
-                확인하기
-              </Button>
-            )}
-          </>
-        )}
-      </div>
-
-      <CommentSection cardId={card.id} meId={me?.id} />
+            </>
+          )}
+        </div>
+      )}
     </>
   );
 }
 
-function Section({
-  label,
+function IconBtn({
   children,
+  label,
+  onClick,
+  disabled,
+  tone = "default",
 }: {
-  label: string;
   children: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  tone?: "default" | "danger";
 }) {
   return (
-    <div className="mt-4 pt-3 border-t border-duo-border">
-      <div className="text-[11px] font-extrabold tracking-wider text-duo-text-muted/70 uppercase mb-1">
-        {label}
-      </div>
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "flex h-9 w-9 items-center justify-center rounded-full transition-colors",
+        disabled
+          ? "text-duo-text-muted/40 cursor-not-allowed"
+          : tone === "danger"
+            ? "text-duo-text-muted hover:text-duo-red hover:bg-duo-red/5"
+            : "text-duo-text-muted hover:text-duo-text hover:bg-duo-bg-muted",
+      )}
+    >
       {children}
-    </div>
+    </button>
   );
 }
