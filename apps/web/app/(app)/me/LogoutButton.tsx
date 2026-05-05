@@ -1,14 +1,13 @@
 "use client";
 import { Button } from "@/components/ui/Button";
+import { apiFetch } from "@/lib/api/client";
 import { clearLocalDb } from "@/lib/local/db";
 
 export function LogoutButton() {
   async function logout() {
     try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-      });
+      // 정적 export — apiFetch가 NEXT_PUBLIC_API_BASE로 cross-origin 호출, 쿠키 클리어
+      await apiFetch<{ ok: true }>("/auth/logout", { method: "POST" });
     } catch {
       // 네트워크 실패해도 로컬은 비움
     }
