@@ -20,7 +20,7 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="h-svh overflow-hidden">
+    <div className="h-dvh overflow-hidden">
       <AuthGuard>
         <Suspense fallback={null}>{children}</Suspense>
       </AuthGuard>
