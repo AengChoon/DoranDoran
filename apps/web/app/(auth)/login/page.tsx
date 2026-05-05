@@ -40,36 +40,44 @@ export default function LoginPage() {
   }, [me.user, router]);
 
   return (
-    <main className="h-full flex items-center justify-center px-4 py-10 bg-linear-to-b from-duo-bg to-duo-green/5">
-      <div className="w-full max-w-md mx-auto flex flex-col items-center gap-6">
-        <div className="flex flex-col items-center gap-1">
-          <div className="animate-bounce-soft">
-            <Mascot variant="pair" size="xl" />
-          </div>
-          <Wordmark size="xl" />
+    <main
+      className="h-full flex flex-col items-center justify-between px-4 bg-linear-to-b from-duo-bg to-duo-green/5"
+      style={{
+        // viewport에 비례한 상하 여백 (clamp으로 최소·최대만 잡고 그 사이는 vh로 fluid)
+        paddingTop: "max(env(safe-area-inset-top), clamp(0.75rem, 3vh, 2rem))",
+        paddingBottom: "max(env(safe-area-inset-bottom), clamp(0.75rem, 3vh, 2rem))",
+      }}
+    >
+      {/* 상단 — 마스코트 + 워드마크. viewport 작아지면 같이 작아짐 */}
+      <div className="flex flex-col items-center gap-1 shrink-0">
+        <div className="w-[clamp(7rem,24vh,12.5rem)] animate-bounce-soft">
+          <Mascot variant="pair" size="xl" className="!w-full !h-auto" />
         </div>
+        <Wordmark size="xl" />
+      </div>
 
+      {/* 중앙 — 안내 + form. min-h-0로 공간 부족 시 자체 축소 가능 */}
+      <div className="flex-1 min-h-0 w-full max-w-md flex flex-col items-center justify-center gap-[clamp(0.75rem,2.5vh,1.5rem)] py-[clamp(0.5rem,2vh,1.5rem)]">
         <p className="text-center text-duo-text text-base leading-relaxed">
           오늘도 둘이서 도란도란.
           <br />
           이메일 한 줄이면 시작할 수 있어요.
         </p>
-
-        <div className="w-full mt-2">
+        <div className="w-full">
           <LoginForm />
         </div>
-
-        {/* GitHub 링크 — 듀오링고 ghost 스타일 (흰 배경 + 회색 4px shadow + active 눌림) */}
-        <a
-          href={REPO_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="GitHub repository"
-          className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white border-2 border-duo-border text-duo-text-muted shadow-[0_4px_0_0_#C5C5C5] hover:text-duo-text active:translate-y-[2px] active:shadow-[0_0_0_0_#C5C5C5] transition-[transform,box-shadow] duration-100"
-        >
-          <GithubMark className="h-5 w-5" />
-        </a>
       </div>
+
+      {/* 하단 — GitHub. 듀오링고 ghost (흰 배경 + 회색 4px 그림자 + 눌림) */}
+      <a
+        href={REPO_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="GitHub repository"
+        className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white border-2 border-duo-border text-duo-text-muted shadow-[0_4px_0_0_#C5C5C5] hover:text-duo-text active:translate-y-[2px] active:shadow-[0_0_0_0_#C5C5C5] transition-[transform,box-shadow] duration-100 shrink-0"
+      >
+        <GithubMark className="h-5 w-5" />
+      </a>
     </main>
   );
 }
