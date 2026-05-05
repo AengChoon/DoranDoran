@@ -13,6 +13,7 @@ import {
   authMiddleware,
   getSession,
 } from "../auth";
+import { sendMagicLinkEmail } from "../mailer";
 
 const TOKEN_TTL_MS = 15 * 60 * 1000;
 
@@ -38,14 +39,15 @@ export const authRoutes = new Hono()
       })
       .run();
 
-    const link = `${env.WEB_ORIGIN}/api/auth/verify?token=${token}`;
+    const link = `${env.API_ORIGIN}/auth/verify?token=${token}`;
 
-    // SES 대신 콘솔에 출력 — 복사·붙여넣기로 로그인
-    console.log("\n──────────────────────────────────────");
-    console.log(`📬  도란도란 매직링크 (${email})`);
-    console.log(`    유효시간: 15분`);
-    console.log(`    링크: ${link}`);
-    console.log("──────────────────────────────────────\n");
+    try {
+      await sendMagicLinkEmail(email, link);
+    } catch (err) {
+      // 메일 발송 실패해도 클라이언트엔 200 — 이메일 존재 여부 노출 방지
+      // 토큰은 DB에 살아있으니 재시도 시 동일 시점에 새 토큰 발급
+      console.error(`[auth] magic-link send failed for ${email}:`, err);
+    }
 
     return c.json({ ok: true });
   })
@@ -97,8 +99,8 @@ export const authRoutes = new Hono()
     const jwt = await signSession({ userId: user.id, email: user.email });
     setCookie(c, sessionCookie.name, jwt, sessionCookie.options);
 
-    // 웹 도메인의 /feed로 리다이렉트 (Next rewrites 통해서 들어왔으면 상대경로면 충분)
-    return c.redirect("/feed");
+    // 웹 도메인 절대 경로로 리다이렉트 — API/web이 다른 origin이므로 상대경로 X
+    return c.redirect(`${env.WEB_ORIGIN}/feed`);
   })
 
   .post("/logout", async (c) => {
