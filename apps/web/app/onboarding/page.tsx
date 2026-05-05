@@ -3,6 +3,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Camera } from "lucide-react";
+import { LocaleToggle } from "@/components/LocaleToggle";
 import { Mascot } from "@/components/Mascot";
 import { Wordmark } from "@/components/Wordmark";
 import { Button } from "@/components/ui/Button";
@@ -10,6 +11,7 @@ import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useMe, meKey } from "@/lib/api/me";
 import { apiFetch } from "@/lib/api/client";
+import { format, useT } from "@/lib/i18n";
 
 /**
  * 첫 로그인 후 본인 프로필 셋업 — name, native lang, avatar.
@@ -52,6 +54,7 @@ type Props = {
 };
 
 function OnboardingForm({ initialName, initialNative, initialAvatarUrl, onDone }: Props) {
+  const t = useT();
   const [name, setName] = React.useState(initialName);
   const [native, setNative] = React.useState<"ko" | "ja">(initialNative);
   const [avatarFile, setAvatarFile] = React.useState<Blob | null>(null);
@@ -67,7 +70,7 @@ function OnboardingForm({ initialName, initialNative, initialAvatarUrl, onDone }
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setError("이미지 파일만 가능해요");
+      setError(t.onboarding.imagesOnly);
       return;
     }
     try {
@@ -76,14 +79,14 @@ function OnboardingForm({ initialName, initialNative, initialAvatarUrl, onDone }
       setAvatarPreview(URL.createObjectURL(resized));
       setError(null);
     } catch {
-      setError("이미지를 불러올 수 없어요");
+      setError(t.onboarding.imageLoadFail);
     }
   }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) {
-      setError("이름을 입력해주세요");
+      setError(t.onboarding.nameRequired);
       return;
     }
     setSubmitting(true);
@@ -113,7 +116,7 @@ function OnboardingForm({ initialName, initialNative, initialAvatarUrl, onDone }
 
       await onDone();
     } catch {
-      setError("저장 중 문제가 생겼어요. 잠시 후 다시 시도해주세요.");
+      setError(t.onboarding.saveError);
       setSubmitting(false);
     }
   }
@@ -126,6 +129,14 @@ function OnboardingForm({ initialName, initialNative, initialAvatarUrl, onDone }
         paddingBottom: "max(env(safe-area-inset-bottom), clamp(0.75rem, 3vh, 2rem))",
       }}
     >
+      {/* 우상단 locale 토글 — onboarding 중에도 언어 변경 가능 */}
+      <div
+        className="absolute right-3 flex"
+        style={{ top: "max(env(safe-area-inset-top), 0.75rem)" }}
+      >
+        <LocaleToggle />
+      </div>
+
       <div className="w-full max-w-md flex flex-col items-center gap-[clamp(0.75rem,2.5vh,1.5rem)]">
         <div className="flex flex-col items-center gap-1">
           <div className="w-[clamp(6rem,18vh,10rem)]">
@@ -134,7 +145,7 @@ function OnboardingForm({ initialName, initialNative, initialAvatarUrl, onDone }
           <Wordmark size="lg" />
         </div>
 
-        <h1 className="text-xl font-extrabold text-duo-text">환영해요!</h1>
+        <h1 className="text-xl font-extrabold text-duo-text">{t.onboarding.welcome}</h1>
 
         <form onSubmit={onSubmit} className="w-full flex flex-col gap-4">
           {/* 아바타 — 옵션 */}
@@ -142,7 +153,7 @@ function OnboardingForm({ initialName, initialNative, initialAvatarUrl, onDone }
             type="button"
             onClick={() => fileInputRef.current?.click()}
             className="self-center relative h-24 w-24 rounded-full bg-duo-bg-muted border-2 border-duo-border overflow-hidden flex items-center justify-center text-duo-text-muted active:scale-95 transition-transform"
-            aria-label="프로필 사진 업로드"
+            aria-label={t.onboarding.avatarLabel}
           >
             {avatarPreview ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -159,19 +170,19 @@ function OnboardingForm({ initialName, initialNative, initialAvatarUrl, onDone }
             className="hidden"
           />
           <p className="-mt-2 text-center text-xs font-semibold text-duo-text-muted">
-            프로필 사진 (선택)
+            {t.onboarding.avatarHelper}
           </p>
 
           {/* 이름 */}
           <div>
             <label htmlFor="name" className="block text-sm font-extrabold text-duo-text mb-1.5">
-              부를 이름
+              {t.onboarding.nameLabel}
             </label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="앵춘"
+              placeholder={t.onboarding.namePlaceholder}
               maxLength={40}
               required
               autoFocus
@@ -181,18 +192,23 @@ function OnboardingForm({ initialName, initialNative, initialAvatarUrl, onDone }
           {/* 모국어 */}
           <div>
             <label className="block text-sm font-extrabold text-duo-text mb-1.5">
-              모국어
+              {t.onboarding.nativeLangLabel}
             </label>
             <div className="grid grid-cols-2 gap-2">
               <LangPill active={native === "ko"} onClick={() => setNative("ko")}>
-                🇰🇷 한국어
+                {t.onboarding.langKo}
               </LangPill>
               <LangPill active={native === "ja"} onClick={() => setNative("ja")}>
-                🇯🇵 일본어
+                {t.onboarding.langJa}
               </LangPill>
             </div>
             <p className="mt-1.5 text-xs text-duo-text-muted font-semibold">
-              학습할 언어: {learning === "ko" ? "한국어" : "일본어"} (자동)
+              {format(t.onboarding.learningHint, {
+                lang:
+                  learning === "ko"
+                    ? t.onboarding.langKoName
+                    : t.onboarding.langJaName,
+              })}
             </p>
           </div>
 
@@ -203,7 +219,7 @@ function OnboardingForm({ initialName, initialNative, initialAvatarUrl, onDone }
           )}
 
           <Button type="submit" size="block" disabled={submitting}>
-            {submitting ? "저장 중…" : "도란도란 시작하기"}
+            {submitting ? t.onboarding.savingCta : t.onboarding.startCta}
           </Button>
         </form>
       </div>

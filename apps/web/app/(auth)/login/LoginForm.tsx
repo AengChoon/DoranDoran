@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { apiFetch, ApiError } from "@/lib/api/client";
 import { meKey } from "@/lib/api/me";
+import { format, useT } from "@/lib/i18n";
 
 type Step =
   | { kind: "email" }
@@ -25,6 +26,7 @@ type Step =
 export function LoginForm() {
   const router = useRouter();
   const qc = useQueryClient();
+  const t = useT();
 
   const [step, setStep] = React.useState<Step>({ kind: "email" });
   const [email, setEmail] = React.useState("");
@@ -36,7 +38,7 @@ export function LoginForm() {
     e.preventDefault();
     const parsed = pinRequestSchema.safeParse({ email });
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? "이메일을 다시 확인해주세요");
+      setError(t.login.invalidEmail);
       return;
     }
     setSubmitting(true);
@@ -65,7 +67,7 @@ export function LoginForm() {
     if (step.kind !== "pin") return;
     const parsed = pinVerifyRequestSchema.safeParse({ email: step.email, code });
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? "코드를 다시 확인해주세요");
+      setError(t.login.invalidCode);
       return;
     }
     setSubmitting(true);
@@ -81,8 +83,8 @@ export function LoginForm() {
     } catch (err) {
       const msg =
         err instanceof ApiError && err.status === 400
-          ? "코드가 맞지 않거나 만료됐어요"
-          : "확인 중 문제가 생겼어요";
+          ? t.login.invalidCode
+          : t.login.unknownError;
       setError(msg);
       setSubmitting(false);
     }
@@ -91,11 +93,14 @@ export function LoginForm() {
   if (step.kind === "pin") {
     return (
       <form onSubmit={onVerifyPin} className="flex flex-col gap-3">
-        <p className="text-center text-sm text-duo-text-muted font-semibold">
-          <span className="text-duo-text font-bold">{step.email}</span>로<br />
-          6자리 코드를 보냈어요.
+        <p className="text-center text-sm text-duo-text-muted font-semibold whitespace-pre-line">
+          {format(t.login.pinSentTo, {
+            email: step.email,
+          })}
         </p>
-        <label htmlFor="pin" className="sr-only">로그인 코드</label>
+        <label htmlFor="pin" className="sr-only">
+          {t.login.verifyCta}
+        </label>
         <Input
           id="pin"
           type="text"
@@ -103,7 +108,7 @@ export function LoginForm() {
           autoComplete="one-time-code"
           pattern="\d{6}"
           maxLength={6}
-          placeholder="● ● ● ● ● ●"
+          placeholder={t.login.pinPlaceholder}
           value={code}
           onChange={(e) => {
             // 숫자만 허용 + 6자리 cap
@@ -123,7 +128,7 @@ export function LoginForm() {
             onClick={() => setCode(step.devCode!)}
             className="btn-duo bg-duo-yellow text-white shadow-[0_4px_0_0_#E0A800] active:shadow-[0_0_0_0_#E0A800] hover:brightness-105 h-12 px-5 text-base"
           >
-            🚀 dev 코드 자동 입력 ({step.devCode})
+            {format(t.login.devCodeAutofill, { code: step.devCode })}
           </button>
         )}
 
@@ -134,7 +139,7 @@ export function LoginForm() {
         )}
 
         <Button type="submit" size="block" disabled={submitting || code.length !== 6}>
-          {submitting ? "확인 중…" : "로그인"}
+          {submitting ? t.login.verifyingCta : t.login.verifyCta}
         </Button>
 
         <Button
@@ -147,7 +152,7 @@ export function LoginForm() {
             setError(null);
           }}
         >
-          다른 이메일로 다시 시도
+          {t.login.tryDifferentEmail}
         </Button>
       </form>
     );
@@ -155,13 +160,15 @@ export function LoginForm() {
 
   return (
     <form onSubmit={onRequestPin} className="flex flex-col gap-3">
-      <label htmlFor="email" className="sr-only">이메일</label>
+      <label htmlFor="email" className="sr-only">
+        {t.login.emailPlaceholder}
+      </label>
       <Input
         id="email"
         type="email"
         inputMode="email"
         autoComplete="email"
-        placeholder="you@example.com"
+        placeholder={t.login.emailPlaceholder}
         value={email}
         onChange={(e) => {
           setEmail(e.target.value);
@@ -178,7 +185,7 @@ export function LoginForm() {
       )}
 
       <Button type="submit" size="block" disabled={submitting}>
-        {submitting ? "보내는 중…" : "코드 받기"}
+        {submitting ? t.login.sendingCta : t.login.requestCta}
       </Button>
     </form>
   );

@@ -1,4 +1,6 @@
+"use client";
 import * as React from "react";
+import { useLocale, type Locale } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 
 export type MascotVariant =
@@ -22,6 +24,8 @@ type Props = {
   variant?: MascotVariant;
   size?: MascotSize;
   className?: string;
+  /** 페어 마스코트의 "위" 자리 — locale 미지정 시 현재 LocaleProvider 값 따름 */
+  primary?: Locale;
 };
 
 // ─── 색·상수 ──────────────────────────────────────────
@@ -177,35 +181,41 @@ function Sparkle({ x, y, scale = 1 }: { x: number; y: number; scale?: number }) 
 }
 
 // ─── pair 배치 ────────────────────────────────────────
-// 한국 = 왼쪽-위, 일본 = 오른쪽-아래로 살짝 비대칭
+// primary 쪽이 왼쪽-위, 다른 쪽이 오른쪽-아래로 살짝 비대칭
 function PairLayout({
   variant,
   size,
   className,
+  primary,
 }: {
   variant: Exclude<MascotVariant, "ko" | "ja">;
   size: number;
   className?: string;
+  primary: Locale;
 }) {
   const isClose = variant === "pair-close";
   const isThinking = variant === "pair-thinking";
   const isCelebrate = variant === "pair-celebrate";
 
-  // 둘 사이 가로 거리: 일반 140, close일 때 110
   const gap = isClose ? 110 : 140;
   const cx1 = 80;
   const cx2 = cx1 + gap;
-  // 한국은 위쪽(y=70), 일본은 아래쪽(y=95) — 비대칭
+  // 위쪽(y=70), 아래쪽(y=95) — 비대칭
   const cy1 = 70;
   const cy2 = isClose ? 90 : 95;
 
-  // 콘텐츠 종류
-  const koKind: "ko" | "thinking" = isThinking ? "thinking" : "ko";
-  const jaKind: "ja" | "thinking" = isThinking ? "thinking" : "ja";
+  // primary가 위, secondary가 아래
+  const secondary: Locale = primary === "ko" ? "ja" : "ko";
+  const topKind = isThinking ? "thinking" : primary;
+  const botKind = isThinking ? "thinking" : secondary;
 
-  // viewBox 폭 — close면 좀 좁게
   const vbWidth = isClose ? 280 : 320;
   const vbHeight = 200;
+
+  const ariaLabel =
+    primary === "ja"
+      ? "ドランドラン マスコット — 日本語 + 韓国語の吹き出し"
+      : "도란도란 마스코트 — 한국 + 일본 말풍선";
 
   return (
     <svg
@@ -213,20 +223,19 @@ function PairLayout({
       width={size}
       height={(size * vbHeight) / vbWidth}
       role="img"
-      aria-label="도란도란 마스코트 — 한국 + 일본 말풍선"
+      aria-label={ariaLabel}
       className={cn("select-none overflow-visible", className)}
     >
-      {/* 도리 (왼쪽-위, 한국) */}
+      {/* 위쪽 (primary) */}
       <g transform={`translate(${cx1} ${cy1})`}>
-        <FlagBubble kind={koKind} tailSide="right" />
+        <FlagBubble kind={topKind} tailSide="right" />
       </g>
 
-      {/* 란이 (오른쪽-아래, 일본) */}
+      {/* 아래쪽 (secondary) */}
       <g transform={`translate(${cx2} ${cy2})`}>
-        <FlagBubble kind={jaKind} tailSide="left" />
+        <FlagBubble kind={botKind} tailSide="left" />
       </g>
 
-      {/* 축하 반짝이 */}
       {isCelebrate && (
         <g>
           <Sparkle x={50} y={30} scale={1.2} />
@@ -271,13 +280,22 @@ function SingleLayout({
 
 /**
  * 도란도란 마스코트.
- * - pair / pair-close / pair-thinking / pair-celebrate: 한국+일본 말풍선 페어
+ * - pair / pair-close / pair-thinking / pair-celebrate: primary 위, 다른 쪽 아래
+ *   primary 미지정 시 LocaleProvider의 현재 locale 따름
  * - ko / ja: 단일 말풍선 (카드 라벨 등)
  */
-export function Mascot({ variant = "pair", size = "lg", className }: Props) {
+export function Mascot({ variant = "pair", size = "lg", className, primary }: Props) {
   const px = SIZE_PX[size];
+  const { locale } = useLocale();
   if (variant === "ko" || variant === "ja") {
     return <SingleLayout kind={variant} size={px} className={className} />;
   }
-  return <PairLayout variant={variant} size={px} className={className} />;
+  return (
+    <PairLayout
+      variant={variant}
+      size={px}
+      className={className}
+      primary={primary ?? locale}
+    />
+  );
 }

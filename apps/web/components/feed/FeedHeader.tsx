@@ -3,6 +3,7 @@ import * as React from "react";
 import { CalendarDays, ChevronDown, ChevronUp, Search, X } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/cn";
+import { useT } from "@/lib/i18n";
 import type { FeedUser } from "@/lib/types";
 
 type Props = {
@@ -41,6 +42,7 @@ export function FeedHeader({
   onNextMatch,
   onOpenCalendar,
 }: Props) {
+  const t = useT();
   const [searching, setSearching] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -95,7 +97,7 @@ export function FeedHeader({
               </div>
               <div className="flex flex-col leading-tight min-w-0">
                 <span className="text-[11px] font-bold text-duo-text-muted">
-                  둘이서 도란도란
+                  {t.feedHeader.brand}
                 </span>
                 <span className="text-sm font-extrabold text-duo-text truncate">
                   {me.displayName}
@@ -105,12 +107,12 @@ export function FeedHeader({
               </div>
             </div>
             {onOpenCalendar && (
-              <IconBtn label="날짜로 이동" onClick={onOpenCalendar}>
+              <IconBtn label={t.feedHeader.calendarAria} onClick={onOpenCalendar}>
                 <CalendarDays className="h-5 w-5" strokeWidth={2.5} />
               </IconBtn>
             )}
             <IconBtn
-              label="검색"
+              label={t.feedHeader.searchOpenAria}
               onClick={() => setSearching(true)}
             >
               <Search className="h-5 w-5" strokeWidth={2.5} />
@@ -129,8 +131,8 @@ export function FeedHeader({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={onKeyDown}
-              placeholder="학습 단어"
-              aria-label="카드 검색"
+              placeholder={t.feedHeader.searchPlaceholder}
+              aria-label={t.feedHeader.searchAria}
               className="flex-1 min-w-0 bg-transparent outline-hidden text-base font-semibold text-duo-text placeholder:font-medium placeholder:text-duo-text-muted"
             />
 
@@ -148,14 +150,14 @@ export function FeedHeader({
                   {hasMatches ? `${currentMatchIndex + 1}/${matchCount}` : "0/0"}
                 </span>
                 <IconBtn
-                  label="이전 매치"
+                  label={t.feedHeader.prevMatchAria}
                   disabled={!hasMatches}
                   onClick={() => onPrevMatch?.()}
                 >
                   <ChevronUp className="h-5 w-5" strokeWidth={2.5} />
                 </IconBtn>
                 <IconBtn
-                  label="다음 매치"
+                  label={t.feedHeader.nextMatchAria}
                   disabled={!hasMatches}
                   onClick={() => onNextMatch?.()}
                 >
@@ -164,7 +166,7 @@ export function FeedHeader({
               </div>
             )}
 
-            <IconBtn label="검색 닫기" onClick={close}>
+            <IconBtn label={t.feedHeader.searchCloseAria} onClick={close}>
               <X className="h-5 w-5" strokeWidth={2.5} />
             </IconBtn>
           </>

@@ -1,8 +1,10 @@
 "use client";
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { LocaleToggle } from "@/components/LocaleToggle";
 import { Mascot } from "@/components/Mascot";
 import { Wordmark } from "@/components/Wordmark";
+import { useT } from "@/lib/i18n";
 import { useMe } from "@/lib/api/me";
 import { LoginForm } from "./LoginForm";
 
@@ -22,18 +24,10 @@ function GithubMark({ className }: { className?: string }) {
   );
 }
 
-/**
- * 로그인 페이지.
- *
- * 정적 export 호스팅 — 서버 측 redirect 불가. 클라이언트에서 /auth/me 호출하고
- * 이미 로그인 상태면 /feed로 redirect.
- *
- * metadata는 정적 export 시 Next.js가 build-time에 추출 — 'use client'에선 못 export.
- * 그래서 별도 layout 또는 head 처리는 추후 (현재는 root layout의 metadata만).
- */
 export default function LoginPage() {
   const router = useRouter();
   const me = useMe();
+  const t = useT();
 
   React.useEffect(() => {
     if (me.user) router.replace("/feed");
@@ -47,6 +41,14 @@ export default function LoginPage() {
         paddingBottom: "max(env(safe-area-inset-bottom), clamp(0.75rem, 3vh, 2rem))",
       }}
     >
+      {/* 우상단 locale 토글 */}
+      <div
+        className="absolute right-3 flex"
+        style={{ top: "max(env(safe-area-inset-top), 0.75rem)" }}
+      >
+        <LocaleToggle />
+      </div>
+
       <div className="w-full max-w-md flex flex-col items-center gap-[clamp(0.75rem,2.5vh,1.5rem)]">
         {/* 마스코트 + 워드마크 — viewport 비례 사이즈 */}
         <div className="flex flex-col items-center gap-1">
@@ -56,17 +58,17 @@ export default function LoginPage() {
           <Wordmark size="xl" />
         </div>
 
-        <p className="text-center text-duo-text text-base leading-relaxed">
-          오늘도 둘이서 도란도란.
-          <br />
-          이메일 한 줄이면 시작할 수 있어요.
+        <p className="text-center text-duo-text text-base leading-relaxed whitespace-pre-line">
+          {t.login.tagline}
+          {"\n"}
+          {t.login.helper}
         </p>
 
         <div className="w-full">
           <LoginForm />
         </div>
 
-        {/* GitHub — form 직후, 듀오링고 ghost 스타일 */}
+        {/* GitHub */}
         <a
           href={REPO_URL}
           target="_blank"
