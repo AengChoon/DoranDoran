@@ -1,6 +1,7 @@
 "use client";
 import * as React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { SwUpdater } from "@/components/SwUpdater";
 import { installAutoSync, syncDelta } from "@/lib/local/sync";
 import { LocaleProvider, useLocale } from "@/lib/i18n";
 import { useMe } from "@/lib/api/me";
@@ -38,6 +39,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={client}>
       <LocaleProvider>
         <LocaleSync />
+        <SwUpdater />
         {children}
       </LocaleProvider>
     </QueryClientProvider>
