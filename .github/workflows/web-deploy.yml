@@ -1,0 +1,68 @@
+name: Web Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "packages/shared/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/web-deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: web-deploy
+  cancel-in-progress: false
+
+permissions:
+  id-token: write   # OIDC 토큰 발급
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build web (with prod env)
+        env:
+          NEXT_PUBLIC_API_BASE: ${{ secrets.NEXT_PUBLIC_API_BASE }}
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
+        run: pnpm --filter @dorandoran/web build
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-northeast-2
+
+      # Hashed assets — 1년 immutable
+      - name: Sync hashed assets (long cache)
+        run: |
+          aws s3 sync apps/web/out/_next/static/ s3://dorandoran-web/_next/static/ \
+            --cache-control "public, max-age=31536000, immutable" \
+            --delete
+
+      # 나머지 (HTML/manifest/sw.js) — no-cache
+      - name: Sync HTML and root assets (no cache)
+        run: |
+          aws s3 sync apps/web/out/ s3://dorandoran-web/ \
+            --exclude "_next/static/*" \
+            --cache-control "public, max-age=0, must-revalidate" \
+            --delete
+
+      - name: CloudFront invalidate
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
